@@ -29,7 +29,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <fcntl.h>
-//#include "process_environment.h"
+#include "process_environment.h"
 
 
 #define BUFFERSIZE 512
@@ -58,11 +58,15 @@ int main(int argc, char **argv)
 	int entree_std;
 	char* pointer;
     char commande[512];
+    char mot[512];
     char buffer[512];
-    int redirection_sortie = 0;
-	int redirection_entree = 0;
+    int redirection_sortie;
+	int redirection_entree;
+	int redirection_sortie_entree;
     //int fp[2];
-    //list_process_environment_t list_origin = NULL;
+    list_process_environment_t list_origin = NULL;
+    int analyseEnCours; // sert à arrêter l'analyse de la ligne de commande
+    int argumentEnCours; // sert à savoir si l'on analyse un argument ou une commande/mot
 
 	
 	// Traitement
@@ -112,32 +116,93 @@ int main(int argc, char **argv)
 			// Séparation des mots de la commande
 			
 			
-			if ( read_and_move_forward( &pointer, commande ) != 0 )
+			//~ if ( read_and_move_forward( &pointer, commande ) != 0 )
+			//~ {
+				//~ read_and_move_forward( &pointer, buffer );
+				//~ if( !strcmp( buffer, ">" ) )
+				//~ {
+					//~ read_and_move_forward( &pointer, buffer );
+					//~ mask_stdout( buffer, &sortie_std );
+					//~ redirection_sortie = 1;
+				//~ }
+				//~ else if ( !strcmp( buffer, "<" ) )
+				//~ {
+					//~ read_and_move_forward( &pointer, buffer );
+					//~ mask_stdin( buffer, &entree_std );
+					//~ redirection_entree = 1;
+				//~ }
+				//~ /*else if( !strcmp( buffer, "|" ) )
+				//~ {
+				    //~ pipe( fp );
+				//~ }*/
+				//~ 
+			//~ }
+			
+			// Analyse de la ligne de commande
+			analyseEnCours = 0;
+			argumentEnCours = 0;
+			redirection_sortie = 0;
+			redirection_entree = 0;
+			redirection_sortie_entree = 0;
+			
+			while( analyseEnCours == 0 )
 			{
-				read_and_move_forward( &pointer, buffer );
-				if( !strcmp( buffer, ">" ) )
+				if( read_and_move_forward( &pointer, mot ) != 0 )
 				{
-					read_and_move_forward( &pointer, buffer );
-					mask_stdout( buffer, &sortie_std );
-					redirection_sortie = 1;
+					printf("mot trouvé: '%s' (argument en cours: %d)\n",mot,argumentEnCours);
+					if( !strcmp( mot, ">" ) )
+					{
+						printf("On redirigera la sortie standard dans un fichier : %s\n",mot);
+						redirection_sortie = 1;
+						argumentEnCours = 0;
+
+					}
+					else if ( !strcmp( mot, "<" ) )
+					{
+						printf("On redirigera l'entrée standard dans un fichier : %s\n",mot);
+						redirection_entree = 1;
+						argumentEnCours = 0;
+					}
+					else if( !strcmp( mot, "|" ) )
+					{
+						printf("On redirigera la sortie standard dans l'entrée standard du processus suivant : %s\n",mot);
+						redirection_sortie_entree = 1;
+						argumentEnCours = 0;
+					}
+					else
+					{
+						if( argumentEnCours == 1 )
+						{
+							printf("Il semblerait que le mot lu soit un argument : '%s'.\n",mot);
+						}
+						else if( redirection_sortie == 1 )
+						{
+							printf("Il semblerait que le fichier de redirection de sortie soit : '%s'.\n",mot);
+							redirection_sortie = 0;
+						}
+						else if( redirection_entree == 1 )
+						{
+							printf("Il semblerait que le fichier de redirection d'entrée soit : '%s'.\n",mot);
+							redirection_entree = 0;
+						}
+						else if( redirection_sortie_entree == 1 )
+						{
+							printf("Il semblerait que le programme vers lequel l'entrée du programme précédent sera redirigée vers la sortie soit : '%s'.\n",mot);
+							redirection_sortie_entree = 0;
+						}
+						argumentEnCours = 1;
+					}
+					
+
+					//add_process_env(list_origin,mot,NULL,0,1);
+					
 				}
-				else if ( !strcmp( buffer, "<" ) )
-				{
-					read_and_move_forward( &pointer, buffer );
-					mask_stdin( buffer, &entree_std );
-					redirection_entree = 1;
-				}
-				/*else if( !strcmp( buffer, "|" ) )
-				{
-				    pipe( fp );
-				}*/
-				
+				else
+					analyseEnCours = 1;
 			}
-			
-			
 
 			
-			
+			exit(0);
 			
 			
 			
@@ -179,8 +244,8 @@ int main(int argc, char **argv)
 	    redirection_sortie = 0;
 	    redirection_entree = 0;
 	    
-	    delete_process_env_list( list_origin );
-	    list_origin = NULL;
+	    //delete_process_env_list( list_origin );
+	    //list_origin = NULL;
 	}
 
 	return 0;

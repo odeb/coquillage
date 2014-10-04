@@ -7,7 +7,7 @@
 #include <fcntl.h>
 #include "process_environment.h"
 
-static const char* PMODE = 0755;
+static const char* PMODE = "0755";
 
 char* copy_string( const char* str )
 {
@@ -74,7 +74,7 @@ list_process_environment_t get_previous( list_process_environment_t origin )
 list_process_environment_t add_process_env( list_process_environment_t origin, const char* command, const char* args, int fdin, int fdout )
 {
     list_process_environment_t pro_env = malloc( sizeof( list_process_environment_t ) );
-    if( list_process_environment_t == NULL )
+    if( pro_env == NULL )
     {
         exit(1);
     }
@@ -92,6 +92,8 @@ list_process_environment_t add_process_env( list_process_environment_t origin, c
     {
         get_previous( origin )->next = pro_env;
     }
+    
+    return pro_env;
 }
 
 void delete_process_env_list( list_process_environment_t origin )
