@@ -11,7 +11,7 @@ all: coquillage
 coquillage: $(OBJ)
 	@$(CXX) -o $@ $^ $(LDFLAGS)
  
-%.o: %.$(EXT)
+%.o: %.c
 	@$(CXX) -o $@ -c $< $(CXXFLAGS)
  
 clean:
