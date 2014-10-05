@@ -74,6 +74,7 @@ list_process_environment_t get_previous( list_process_environment_t origin )
 list_process_environment_t add_process_env( list_process_environment_t origin, const char* command, const char* args, int fdin, int fdout )
 {
     list_process_environment_t pro_env = malloc( sizeof( list_process_environment_t ) );
+    //fprintf( stderr, "TEST2.\n");
     if( pro_env == NULL )
     {
         exit(1);
@@ -84,6 +85,14 @@ list_process_environment_t add_process_env( list_process_environment_t origin, c
     pro_env->stdout_fd = fdout;
     pro_env->next = NULL;
     
+    fprintf( stderr, "DEBUGDEBUG command: '%s'.\n", pro_env->command );
+    fprintf( stderr, "DEBUGDEBUG args: '%s'.\n", pro_env->args );
+    fprintf( stderr, "DEBUGDEBUG stdin_fd: '%d'.\n", pro_env->stdin_fd );
+    fprintf( stderr, "DEBUGDEBUG stdout_fd: '%d'.\n", pro_env->stdout_fd );
+    fprintf( stderr, "DEBUGDEBUG next: '%p'.\n", pro_env->next );
+    
+    //fprintf( stderr, "TEST2.\n");
+    
     if( origin == NULL )
     {
         return pro_env;
@@ -91,9 +100,8 @@ list_process_environment_t add_process_env( list_process_environment_t origin, c
     else
     {
         get_previous( origin )->next = pro_env;
+        return origin;
     }
-    
-    return pro_env;
 }
 
 void delete_process_env_list( list_process_environment_t origin )

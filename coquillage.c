@@ -54,20 +54,26 @@ int main(int argc, char **argv)
 	int execlExit;
 	int processus;
 	int statusFils;
-	int sortie_std;
-	int entree_std;
+	int sortie_std = 1;
+	int entree_std = 0;
 	char* pointer;
     char commande[512];
+    char argument[512];
     char mot[512];
     char buffer[512];
     int redirection_sortie;
 	int redirection_entree;
 	int redirection_sortie_entree;
-    //int fp[2];
-    list_process_environment_t list_origin = NULL;
+	int faire_la_redirection;
+	int attention_redirection_sortie;
+	int	attention_redirection_entree;
+	int	attention_redirection_sortie_entree;
+    int fp[2];
+    int fp_temporaire;
+    list_process_environment_t list_origin;
     int analyseEnCours; // sert à arrêter l'analyse de la ligne de commande
     int argumentEnCours; // sert à savoir si l'on analyse un argument ou une commande/mot
-
+	
 	
 	// Traitement
 	
@@ -112,95 +118,164 @@ int main(int argc, char **argv)
 		// Et sinon, on exécute la commande demandée !
 		else
 		{
-			
-			// Séparation des mots de la commande
-			
-			
-			//~ if ( read_and_move_forward( &pointer, commande ) != 0 )
-			//~ {
-				//~ read_and_move_forward( &pointer, buffer );
-				//~ if( !strcmp( buffer, ">" ) )
-				//~ {
-					//~ read_and_move_forward( &pointer, buffer );
-					//~ mask_stdout( buffer, &sortie_std );
-					//~ redirection_sortie = 1;
-				//~ }
-				//~ else if ( !strcmp( buffer, "<" ) )
-				//~ {
-					//~ read_and_move_forward( &pointer, buffer );
-					//~ mask_stdin( buffer, &entree_std );
-					//~ redirection_entree = 1;
-				//~ }
-				//~ /*else if( !strcmp( buffer, "|" ) )
-				//~ {
-				    //~ pipe( fp );
-				//~ }*/
-				//~ 
-			//~ }
-			
+
 			// Analyse de la ligne de commande
 			analyseEnCours = 0;
 			argumentEnCours = 0;
 			redirection_sortie = 0;
 			redirection_entree = 0;
 			redirection_sortie_entree = 0;
+			attention_redirection_sortie = 0;
+			attention_redirection_entree = 0;
+			attention_redirection_sortie_entree = 0;
+			faire_la_redirection = 0;
+			list_origin = malloc( sizeof( list_process_environment_t ) );
+			list_origin = NULL;
+			strcpy( argument, "" );
 			
 			while( analyseEnCours == 0 )
 			{
 				if( read_and_move_forward( &pointer, mot ) != 0 )
 				{
-					printf("mot trouvé: '%s' (argument en cours: %d)\n",mot,argumentEnCours);
+					//fprintf( stderr, "DEBUG mot: '%s'.\n",mot);
+					
 					if( !strcmp( mot, ">" ) )
 					{
-						printf("On redirigera la sortie standard dans un fichier : %s\n",mot);
 						redirection_sortie = 1;
+						attention_redirection_sortie = 1;
 						argumentEnCours = 0;
-
+						//fprintf( stderr, "DEBUG redirection: %s\n",mot);
+						//fprintf( stderr, "DEBUG argumentEnCours: '%d'.\n",argumentEnCours);
 					}
 					else if ( !strcmp( mot, "<" ) )
 					{
-						printf("On redirigera l'entrée standard dans un fichier : %s\n",mot);
 						redirection_entree = 1;
+						attention_redirection_entree = 1;
 						argumentEnCours = 0;
+						//fprintf( stderr, "DEBUG redirection: %s\n",mot);
+						//fprintf( stderr, "DEBUG argumentEnCours: '%d'.\n",argumentEnCours);
 					}
 					else if( !strcmp( mot, "|" ) )
 					{
-						printf("On redirigera la sortie standard dans l'entrée standard du processus suivant : %s\n",mot);
 						redirection_sortie_entree = 1;
+						attention_redirection_sortie_entree = 1;
 						argumentEnCours = 0;
+						//fprintf( stderr, "DEBUG redirection : %s\n",mot);
+						//fprintf( stderr, "DEBUG argumentEnCours: '%d'.\n",argumentEnCours);
 					}
 					else
 					{
 						if( argumentEnCours == 1 )
 						{
-							printf("Il semblerait que le mot lu soit un argument : '%s'.\n",mot);
+							//fprintf( stderr, "DEBUG argument: '%s'.\n",mot);
+							strcpy( argument, mot );
 						}
 						else if( redirection_sortie == 1 )
 						{
-							printf("Il semblerait que le fichier de redirection de sortie soit : '%s'.\n",mot);
 							redirection_sortie = 0;
+							mask_stdout( mot, &sortie_std );
+							//fprintf( stderr, "DEBUG fichier sortie: '%s'.\n",mot);
 						}
 						else if( redirection_entree == 1 )
 						{
-							printf("Il semblerait que le fichier de redirection d'entrée soit : '%s'.\n",mot);
 							redirection_entree = 0;
+							if ( attention_redirection_sortie_entree == 1 )
+							{
+								fprintf( stderr, "DEBUG: Attention le pipe ne devrait pas prendre le dessus sur '<'.\n");
+							}
+							if ( attention_redirection_sortie_entree == 0 )
+								mask_stdin( mot, &entree_std );
+							else
+								mask_stdin( mot, &fp[0] );
+							//fprintf( stderr, "DEBUG fichier entrée: '%s'.\n",mot);
 						}
 						else if( redirection_sortie_entree == 1 )
 						{
-							printf("Il semblerait que le programme vers lequel l'entrée du programme précédent sera redirigée vers la sortie soit : '%s'.\n",mot);
 							redirection_sortie_entree = 0;
+							if ( attention_redirection_sortie == 1 )
+							{
+								fprintf( stderr, "DEBUG: Attention le pipe ne devrait pas prendre le dessus sur '>'.\n");
+							}
+							if( faire_la_redirection == 0 )
+							{
+								pipe( fp );
+								if( attention_redirection_sortie == 0 )
+									list_origin = add_process_env( list_origin, commande, argument, entree_std, fp[1] );
+								else
+									list_origin = add_process_env( list_origin, commande, argument, entree_std, sortie_std );
+							}
+							else
+							{
+								fp_temporaire = fp[0];
+								pipe( fp );
+								if( attention_redirection_sortie == 0 )
+									list_origin = add_process_env( list_origin, commande, argument, fp_temporaire, fp[1] );
+								else
+									list_origin = add_process_env( list_origin, commande, argument, fp_temporaire, sortie_std );
+							}
+							strcpy( commande, mot );
+							fprintf( stderr, "DEBUG processus à lancer: '%s'.\n",commande);
+							faire_la_redirection = 1;
+							attention_redirection_sortie = 0;
+						}
+						else
+						{
+							strcpy( commande, mot );
+							fprintf( stderr, "DEBUG processus à lancer: '%s'.\n",commande);
 						}
 						argumentEnCours = 1;
-					}
-					
-
-					//add_process_env(list_origin,mot,NULL,0,1);
-					
+						//fprintf( stderr, "DEBUG argumentEnCours: '%d'.\n",argumentEnCours);
+					}					
 				}
 				else
+				{
 					analyseEnCours = 1;
+					if( faire_la_redirection == 0 )
+					{
+						//fprintf( stderr, "TEST1.\n");
+						//fprintf( stderr, "DEBUG commande: '%s'.\n", commande );
+						//fprintf( stderr, "DEBUG argument: '%s'.\n", argument );
+						//fprintf( stderr, "DEBUG stdin: '%d'.\n", entree_std );
+						//fprintf( stderr, "DEBUG stdout: '%d'.\n", sortie_std );
+						//fprintf( stderr, "DEBUG sortie_std: '%d'.\n", sortie_std );
+						list_origin = add_process_env( list_origin, commande, argument, entree_std, sortie_std );
+						//fprintf( stderr, "TEST1.\n");
+					}
+					else
+					{
+						//fprintf( stderr, "DEBUG attention_redirection_sortie: '%d'.\n", attention_redirection_sortie );
+						//fprintf( stderr, "DEBUG sortie_std: '%d'.\n", sortie_std );
+						//fprintf( stderr, "DEBUG fp[1]: '%d'.\n", fp[1] );
+						if( attention_redirection_sortie == 0 )
+						{
+							//fprintf( stderr, "DEBUG if.\n");
+							list_origin = add_process_env( list_origin, commande, argument, fp[0], 1 );
+						}
+						else
+						{
+							//fprintf( stderr, "DEBUG else.\n");
+							list_origin = add_process_env( list_origin, commande, argument, fp[0], sortie_std );
+						}
+						//faire_la_redirection = 0;
+					}
+				}
 			}
-
+			fprintf( stderr, "TEST liste niveau 1.\n");
+			fprintf( stderr, "DEBUG command: '%s'.\n", list_origin->command );
+			fprintf( stderr, "DEBUG args: '%s'.\n", list_origin->args );
+			fprintf( stderr, "DEBUG stdin_fd: '%d'.\n", list_origin->stdin_fd );
+			fprintf( stderr, "DEBUG stdout_fd: '%d'.\n", list_origin->stdout_fd );
+			fprintf( stderr, "DEBUG next: '%p'.\n", list_origin->next );
+			
+			fprintf( stderr, "TEST liste niveau 2.\n");
+			fprintf( stderr, "DEBUG command: '%s'.\n", (list_origin->next)->command );
+			fprintf( stderr, "DEBUG args: '%s'.\n", (list_origin->next)->args );
+			fprintf( stderr, "DEBUG stdin_fd: '%d'.\n", (list_origin->next)->stdin_fd );
+			fprintf( stderr, "DEBUG stdout_fd: '%d'.\n", (list_origin->next)->stdout_fd );
+			fprintf( stderr, "DEBUG next: '%p'.\n", (list_origin->next)->next );
+			
+			//restore_stdout( sortie_std );
+			//restore_stdin( entree_std );
 			
 			exit(0);
 			
@@ -254,11 +329,13 @@ int main(int argc, char **argv)
 void mask_stdout( const char* nom_fic, int* sortie_std )
 {
 	// DEBUG
-	fprintf( stderr, "passé par la fonction mask_stdout\n");
+	//fprintf( stderr, "passé par la fonction mask_stdout\n");
 	
 	// on transforme un fichier en sortie standard, le temps de l'execution
 	
 	*sortie_std = dup(1);
+	
+	//fprintf( stderr, "DEBUG mask_stdout: '%d'.\n", *sortie_std);
 	
 	close(1);
 	
@@ -303,11 +380,13 @@ int read_and_move_forward( char** string, char* buffer )
 void mask_stdin( const char* nom_fic, int* entree_std )
 {
 	// DEBUG
-	fprintf( stderr, "passé par la fonction mask_stdin\n");
+	//fprintf( stderr, "passé par la fonction mask_stdin\n");
 	
 	// on transforme un fichier en entree standard, le temps de l'execution
 	
 	*entree_std = dup(0);
+	
+	//fprintf( stderr, "DEBUG mask_stdin: '%d'.\n", *entree_std);
 	
 	close(0);
 	
