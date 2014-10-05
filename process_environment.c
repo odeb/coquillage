@@ -7,7 +7,7 @@
 #include <fcntl.h>
 #include "process_environment.h"
 
-static const char* PMODE = "0755";
+//static const char* PMODE = "0755";
 
 char* copy_string( const char* str )
 {

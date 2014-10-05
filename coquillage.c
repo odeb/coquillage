@@ -60,13 +60,13 @@ int main(int argc, char **argv)
     char commande[512];
     char argument[512];
     char mot[512];
-    char buffer[512];
+    //char buffer[512];
     int redirection_sortie;
 	int redirection_entree;
 	int redirection_sortie_entree;
 	int faire_la_redirection;
 	int attention_redirection_sortie;
-	int	attention_redirection_entree;
+	//int	attention_redirection_entree;
 	int	attention_redirection_sortie_entree;
     int fp[2];
     int fp_temporaire;
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
 			redirection_entree = 0;
 			redirection_sortie_entree = 0;
 			attention_redirection_sortie = 0;
-			attention_redirection_entree = 0;
+			//attention_redirection_entree = 0;
 			attention_redirection_sortie_entree = 0;
 			faire_la_redirection = 0;
 			list_origin = malloc( sizeof( list_process_environment_t ) );
@@ -150,7 +150,7 @@ int main(int argc, char **argv)
 					else if ( !strcmp( mot, "<" ) )
 					{
 						redirection_entree = 1;
-						attention_redirection_entree = 1;
+						//attention_redirection_entree = 1;
 						argumentEnCours = 0;
 						//fprintf( stderr, "DEBUG redirection: %s\n",mot);
 						//fprintf( stderr, "DEBUG argumentEnCours: '%d'.\n",argumentEnCours);
