@@ -1,0 +1,25 @@
+h
+
+h > t1
+h < t2
+
+h > t1 < t2
+
+h > t1 | n
+h < t2 | n
+
+h > t1 < t2 | n
+
+h | n
+
+h | n > t3
+h | n < t4
+
+h | n > t3 < t4
+
+h > t1 | n > t3
+h < t2 | n < t4
+
+h > t1 | n < t4
+h < t2 | n > t3
+
