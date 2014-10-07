@@ -48,34 +48,34 @@ int read_and_move_forward( char** string, char* buffer );
 int main(int argc, char **argv)
 {
 	
-	// Variables
-	int nbCarLus = 0;
-	char tampon[BUFFERSIZE];	// tableau qui contient la commande tapée
-	int execlExit;
-	int processus;
-	int statusFils;
-	int sortie_std = 1;
-	int entree_std = 0;
-	char* pointer;
-    char commande[512];
-    char argument[512];
-    char mot[512];
+	// VARIABLES
+	int nbCarLus = 0;							// permet de connaitre le nombre de caractères lus
+	char tampon[BUFFERSIZE];					// tableau qui contient la commande tapée
+	int execlExit;              				// récupère la valeur de sortie d'execl
+	int processus;								// récupère le PID du processus une fois le fork() exécuté
+	int statusFils;								// contient le status du fils pour le wait() du père
+	int sortie_std = 1;							// initialisation de la sortie standard à 1
+	int entree_std = 0;							// initialisation de l'entrée standard à 0
+	char* pointer;								// pointeur sur le tampon afin de travailler avec par la suite
+    char mot[512];								// récupère le "mot" (commande, argument, ">", "<", "|") qui va être analysé
+    char commande[512];							// récupère la commande analysée
+    char argument[512];							// récupère l'argument de la commande analysée
     //char buffer[512];
-    int redirection_sortie;
-	int redirection_entree;
-	int redirection_sortie_entree;
-	int faire_la_redirection;
-	int attention_redirection_sortie;
+    int redirection_sortie;						// prévient l'analyseur qu'au prochain "mot" il faudra traiter une redirection de la sortie de la "commande" vers le fichier "mot"
+	int redirection_entree;						// prévient l'analyseur qu'au prochain "mot" il faudra traiter une redirection de l'entrée de la "commande" vers le fichier "mot"
+	int redirection_sortie_entree;				// prévient l'analyseur qu'au prochain "mot" il faudra traiter une redirection de la sortie de la "commande" précédente vers le prochain "mot"
+	int faire_la_redirection;					// prévient l'analyseur qu'une fois qu'il a détecté un "|" alors à partir de ce moment il faudra traiter différement l'ajout de la commande à la structure, en particulier son entrée qui ne sera plus la standard
+	int attention_redirection_sortie;			// prévient l'analyseur qu'il y a eu un ">" avant un "|" et qu'il devra prendre en compte en priorité le ">"
 	//int	attention_redirection_entree;
-	int	attention_redirection_sortie_entree;
-    int fp[2];
-    int fp_temporaire;
-    list_process_environment_t list_origin;
-    int analyseEnCours; // sert à arrêter l'analyse de la ligne de commande
-    int argumentEnCours; // sert à savoir si l'on analyse un argument ou une commande/mot
+	int	attention_redirection_sortie_entree;	// prévient l'analyseur qu'il y a eu un "|" avant un "<" et qu'il devra prendre en compte en priorité le "<"
+    int fp[2];									// contient les 2 descripteurs pour faire des "|"
+    int fp_temporaire;							// contient le descripteur d'entrée temporaire avant d'appeler de nouveau pipe() afin de bien gérer le "|"
+    list_process_environment_t list_origin;		// contient la liste de toutes les commandes à lancer ainsi que leur argument, leur entrée et leur sortie une fois la ligne de commandes analysée
+    int analyseEnCours; 						// prévient l'analyseur d'arrêter l'analyse de la ligne de commandes
+    int argumentEnCours;						// prévient l'analyseur que l'on analyse un argument
 	
 	
-	// Traitement
+	// TRAITEMENT
 	
 	
 	printf("Bienvenue sur le coquillage ! :D\n");
