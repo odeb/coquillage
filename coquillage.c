@@ -72,6 +72,10 @@ int main(int argc, char **argv)
 	int restaurerEntree;						// prévient l'analyseur qu'il faut restaurer l'entrée standard
     int fp[2];									// contient les 2 descripteurs pour faire des "|"
     int fp_temporaire;							// contient le descripteur d'entrée temporaire avant d'appeler de nouveau pipe() afin de bien gérer le "|"
+    int copieEcriture;							// contient la copie temporaire de la sortie standard
+    int copieEcriturePipe;						// contient la copie temporaire du côté écriture du pipe
+    int copieLecture;							// contient la copie temporaire de l'entrée standard
+    int copieLecturePipe;						// contient la copie temporaire du côté lecture du pipe
     list_process_environment_t list_origin;		// contient la liste de toutes les commandes à lancer ainsi que leur argument, leur entrée et leur sortie une fois la ligne de commandes analysée
     int analyseEnCours; 						// prévient l'analyseur d'arrêter l'analyse de la ligne de commandes
     int argumentEnCours;						// prévient l'analyseur que l'on analyse un argument
@@ -248,27 +252,126 @@ int main(int argc, char **argv)
 						else if( redirection_sortie_entree == 1 )
 						{
 							redirection_sortie_entree = 0;
-							if ( attention_redirection_sortie == 1 )
-							{
-								fprintf( stderr, "DEBUG: Attention le pipe ne devrait pas prendre le dessus sur '>'.\n");
-							}
+							
 							if( faire_la_redirection == 0 )
 							{
 								pipe( fp );
+								copieEcriture = dup( 1 );
+								close( 1 );
+								copieEcriturePipe = dup( fp[1] );
+								fprintf( stderr, "MEGADEBUG copieEcriturePipe: '%d'.\n", copieEcriturePipe);
+								close( fp[1] );
+								
 								if( attention_redirection_sortie == 0 )
+								{
 									list_origin = add_process_env( list_origin, commande, argument, entree_std, fp[1] );
+									
+									// On se divise !!
+									processus = fork();
+									if(processus == -1)
+										fprintf( stderr, "Ouille... grosse erreur, je n'ai pas réussi à créer le processus fils !\n" );
+									// Si je suis le fils
+									if(processus == 0)
+									{
+										// j'exécute la commande demandée
+										if ( strcmp(argument,"") == 0 )
+											execlExit= execl( commande, commande, NULL );
+										else
+										{
+											fprintf( stderr, "TITAN DEBUG: '%s'\n", argument );
+											execlExit= execl( commande, commande, argument, NULL );
+										}
+										// je sors en erreur si execl à un problème d'exécution
+										if( execlExit < 0 ) fprintf( stderr, "Erreur d'exécution, la commande est peut-être inconnue !\n" );
+										exit( 0 );
+									}		
+									// Sinon, je suis le père
+									else
+									{
+										// Et j'attends la fin de mes fils
+										processus=wait(&statusFils);
+																		
+										if ( restaurerSortie == 1 )
+										{
+											restore_stdout( sortie_std );
+											restaurerSortie = 0;
+										}
+										if ( restaurerEntree == 1 )
+										{
+											restore_stdin( entree_std );
+											restaurerEntree = 0;
+										}
+
+										close ( copieEcriturePipe );
+										dup( copieEcriture );
+										close( copieEcriture );
+									}
+								}
 								else
+								{
+									fprintf( stderr, "DEBUG: Attention le pipe ne devrait pas prendre le dessus sur '>'.\n");
 									list_origin = add_process_env( list_origin, commande, argument, entree_std, sortie_std );
+								}
 							}
 							else
 							{
 								fp_temporaire = fp[0];
 								pipe( fp );
+								
+								//~ copieLecture = dup( 0 );
+								//~ close( 0 );
+								//~ copieLecturePipe = dup( fp[0]);
+								
+								
 								if( attention_redirection_sortie == 0 )
+								{
 									list_origin = add_process_env( list_origin, commande, argument, fp_temporaire, fp[1] );
+									
+									// On se divise !!
+									processus = fork();
+									if(processus == -1)
+										fprintf( stderr, "Ouille... grosse erreur, je n'ai pas réussi à créer le processus fils !\n" );
+									// Si je suis le fils
+									if(processus == 0)
+									{
+										// j'exécute la commande demandée
+										if ( strcmp(argument,"") == 0 )
+											execlExit= execl( commande, commande, NULL );
+										else
+											execlExit= execl( commande, commande, argument, NULL );
+										// je sors en erreur si execl à un problème d'exécution
+										if( execlExit < 0 ) fprintf( stderr, "Erreur d'exécution, la commande est peut-être inconnue !\n" );
+										exit( 0 );
+									}		
+									// Sinon, je suis le père
+									else
+									{
+										
+										close ( copieLecturePipe );
+										dup( copieLecture );
+										close( copieLecture );
+										
+										if ( restaurerSortie == 1 )
+										{
+											restore_stdout( sortie_std );
+											restaurerSortie = 0;
+										}
+										if ( restaurerEntree == 1 )
+										{
+											restore_stdin( entree_std );
+											restaurerEntree = 0;
+										}
+										// Et j'attends la fin de mes fils
+										processus=wait(&statusFils);
+									}									
+								}
 								else
+								{
+									fprintf( stderr, "DEBUG: Attention le pipe ne devrait pas prendre le dessus sur '>'.\n");
 									list_origin = add_process_env( list_origin, commande, argument, fp_temporaire, sortie_std );
+								}
 							}
+							strcpy( argument, "" );
 							strcpy( commande, mot );
 							fprintf( stderr, "DEBUG processus à lancer: '%s'.\n",commande);
 							faire_la_redirection = 1;
@@ -337,8 +440,49 @@ int main(int argc, char **argv)
 						//fprintf( stderr, "DEBUG fp[1]: '%d'.\n", fp[1] );
 						if( attention_redirection_sortie == 0 )
 						{
+							copieLecture = dup( 0 );
+							close( 0 );
+							copieLecturePipe = dup( fp[0]);
 							//fprintf( stderr, "DEBUG if.\n");
 							list_origin = add_process_env( list_origin, commande, argument, fp[0], 1 );
+							// On se divise !!
+							processus = fork();
+							if(processus == -1)
+								fprintf( stderr, "Ouille... grosse erreur, je n'ai pas réussi à créer le processus fils !\n" );
+							// Si je suis le fils
+							if(processus == 0)
+							{
+								// j'exécute la commande demandée
+								if ( strcmp(argument,"") == 0 )
+									execlExit= execl( commande, commande, NULL );
+								else
+									execlExit= execl( commande, commande, argument, NULL );
+								// je sors en erreur si execl à un problème d'exécution
+								if( execlExit < 0 ) fprintf( stderr, "Erreur d'exécution, la commande est peut-être inconnue !\n" );
+								exit( 0 );
+							}		
+							// Sinon, je suis le père
+							else
+							{
+								// Et j'attends la fin de mes fils
+								processus=wait(&statusFils);
+															
+								if ( restaurerSortie == 1 )
+								{
+									restore_stdout( sortie_std );
+									restaurerSortie = 0;
+								}
+								if ( restaurerEntree == 1 )
+								{
+									restore_stdin( entree_std );
+									restaurerEntree = 0;
+								}
+								
+								close ( copieLecturePipe );
+								dup( copieLecture );
+								close( copieLecture );
+							}									
+							
 						}
 						else
 						{
@@ -366,50 +510,50 @@ int main(int argc, char **argv)
 			//restore_stdout( sortie_std );
 			//restore_stdin( entree_std );
 			
-			exit(0);
+			//exit(0);
 			
 			
 			
-			// AVEC FORK
-			// On se prépare à exécuter la commande demandée dans un processus fils !
-			processus = fork();
-			if(processus == -1)
-				fprintf( stderr, "Ouille... grosse erreur, je n'ai pas réussi à créer le processus fils !\n");
-			// Si je suis le fils
-			if(processus == 0)
-			{
-	
-				
-				// j'exécute la commande demandée
-				execlExit=execl(commande,commande,NULL);
-				// je sors en erreur si execl à un problème d'exécution
-				if(execlExit<0) fprintf( stderr, "Erreur d'exécution, la commande est peut-être inconnue !\n");
-				exit(0);
-			}		
-			// Sinon, je suis le père
-			else
-			{
-				// Et j'attends la fin de mes fils
-				processus=wait(&statusFils);
-			}
-			
-			if ( redirection_sortie == 1 )
-			{
-				restore_stdout( sortie_std );
-			}	
-			if ( redirection_entree == 1 )
-			{
-				restore_stdin( entree_std );
-			}
-			//printf( "tigre\n" );
-
+			//~ // AVEC FORK
+			//~ // On se prépare à exécuter la commande demandée dans un processus fils !
+			//~ processus = fork();
+			//~ if(processus == -1)
+				//~ fprintf( stderr, "Ouille... grosse erreur, je n'ai pas réussi à créer le processus fils !\n");
+			//~ // Si je suis le fils
+			//~ if(processus == 0)
+			//~ {
+	//~ 
+				//~ 
+				//~ // j'exécute la commande demandée
+				//~ execlExit=execl(commande,commande,NULL);
+				//~ // je sors en erreur si execl à un problème d'exécution
+				//~ if(execlExit<0) fprintf( stderr, "Erreur d'exécution, la commande est peut-être inconnue !\n");
+				//~ exit(0);
+			//~ }		
+			//~ // Sinon, je suis le père
+			//~ else
+			//~ {
+				//~ // Et j'attends la fin de mes fils
+				//~ processus=wait(&statusFils);
+			//~ }
+			//~ 
+			//~ if ( redirection_sortie == 1 )
+			//~ {
+				//~ restore_stdout( sortie_std );
+			//~ }	
+			//~ if ( redirection_entree == 1 )
+			//~ {
+				//~ restore_stdin( entree_std );
+			//~ }
+			//~ //printf( "tigre\n" );
+//~ 
 		}
-		
-	    redirection_sortie = 0;
-	    redirection_entree = 0;
-	    
-	    //delete_process_env_list( list_origin );
-	    //list_origin = NULL;
+		//~ 
+	    //~ redirection_sortie = 0;
+	    //~ redirection_entree = 0;
+	    //~ 
+	    //~ //delete_process_env_list( list_origin );
+	    //~ //list_origin = NULL;
 	}
 
 	return 0;
@@ -497,3 +641,4 @@ void restore_stdin( int entree_std )
 	dup( entree_std );	// il trouve tout seul 1 qui est le premier dispo ?
 	close( entree_std );
 }
+
