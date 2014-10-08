@@ -221,24 +221,28 @@ int main(int argc, char **argv)
 						{
 							// on remet cet avertisseur à 0, car la redirection est traitée, on passe à autre chose
 							redirection_entree = 0;
-							
-							// cas où l'utilisateur redirige deux fois l'entrée d'une commande, une fois avec "|" et l'autre avec "<"
-							// par exemple : cmd1 | cmd2 < fichier
-							// dans ce cas, on ignore le pipe, on utilise le fichier spécifié (l'algorithme l'implique tout seul)
-							// mais surtout, on prévient l'utilisateur
-							if ( attention_redirection_sortie_entree == 1 )
-							{
-								fprintf( stderr, "DEBUG: Attention le pipe ne devrait pas prendre le dessus sur '<'.\n");
-							}
+
 							// si aucun "|" n'a été appelé avant ce "<", tout va bien
 							// on utilise la fonction qui redirige l'entrée
 							// (on lui passe "mot" qui contient le nom du fichier à créer 
 							// et "sortie_std" que la fonction remplira avec le descripteur de fichier associé)
 							if ( attention_redirection_sortie_entree == 0 )
+							{
+								// on utilise la fonction qui redirige l'entrée
+								// (on lui passe "mot" qui contient le nom du fichier à créer 
+								// et "entree_std" que la fonction remplira avec le descripteur de fichier associé)
 								mask_stdin( mot, &entree_std );
-							// STOP
+								restaurerEntree = 1;
+							}
+							// cas où l'utilisateur redirige deux fois l'entrée d'une commande, une fois avec "|" et l'autre avec "<"
+							// par exemple : cmd1 | cmd2 < fichier
+							// dans ce cas, on ignore le pipe, on utilise le fichier spécifié (on masque fp[0] par le descripteur du fichier)
+							// mais surtout, on prévient l'utilisateur
 							else
+							{
+								fprintf( stderr, "DEBUG: Attention le pipe ne devrait pas prendre le dessus sur '<'.\n");
 								mask_stdin( mot, &fp[0] );
+							}
 							//fprintf( stderr, "DEBUG fichier entrée: '%s'.\n",mot);
 						}
 						else if( redirection_sortie_entree == 1 )
@@ -273,7 +277,7 @@ int main(int argc, char **argv)
 						else
 						{
 							strcpy( commande, mot );
-							fprintf( stderr, "DEBUG processus à lancer: '%s'.\n",commande);
+							//fprintf( stderr, "DEBUG processus à lancer: '%s'.\n",commande);
 						}
 						argumentEnCours = 1;
 						//fprintf( stderr, "DEBUG argumentEnCours: '%d'.\n",argumentEnCours);
@@ -317,7 +321,11 @@ int main(int argc, char **argv)
 								restore_stdout( sortie_std );
 								restaurerSortie = 0;
 							}
-							
+							if ( restaurerEntree == 1 )
+							{
+								restore_stdin( entree_std );
+								restaurerEntree = 0;
+							}
 							// Et j'attends la fin de mes fils
 							processus=wait(&statusFils);
 						}
@@ -430,7 +438,7 @@ void mask_stdout( const char* nom_fic, int* sortie_std )
 void restore_stdout( int sortie_std )
 {
 	// on remet en place la sortie standard
-	fprintf( stderr, "passé par la fonction restore_stdout\n");
+	//fprintf( stderr, "passé par la fonction restore_stdout\n");
 	
 	// on ferme le ficher
 	close( 1 );
@@ -481,7 +489,7 @@ void mask_stdin( const char* nom_fic, int* entree_std )
 void restore_stdin( int entree_std )
 {
 	// on remet en place la sortie standard
-	fprintf( stderr, "passé par la fonction restore_stdin\n");
+	//fprintf( stderr, "passé par la fonction restore_stdin\n");
 	
 	// on ferme le ficher
 	close( 0 );
