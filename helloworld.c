@@ -23,10 +23,19 @@
 
 
 #include <stdio.h>
+#include <string.h>
 
-int main(int argc, char **argv)
+int main( int argc, char **argv )
 {
-	printf("Hello World\n");
+	if( argc == 1 )
+		printf( "Hello World\n" );
+	else
+	{
+		if( strcmp( argv[1], "-b" ) == 0 )
+			printf( "Bye Bye!\n" );
+		else
+			printf( "Wrong Parameter!\n" );
+	}
 	return 0;
 }
 
