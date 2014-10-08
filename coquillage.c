@@ -68,6 +68,8 @@ int main(int argc, char **argv)
 	int attention_redirection_sortie;			// prévient l'analyseur qu'il y a eu un ">" avant un "|" et qu'il devra prendre en compte en priorité le ">"
 	//int	attention_redirection_entree;
 	int	attention_redirection_sortie_entree;	// prévient l'analyseur qu'il y a eu un "|" avant un "<" et qu'il devra prendre en compte en priorité le "<"
+	int restaurerSortie;						// prévient l'analyseur qu'il faut restaurer la sortie standard
+	int restaurerEntree;						// prévient l'analyseur qu'il faut restaurer l'entrée standard
     int fp[2];									// contient les 2 descripteurs pour faire des "|"
     int fp_temporaire;							// contient le descripteur d'entrée temporaire avant d'appeler de nouveau pipe() afin de bien gérer le "|"
     list_process_environment_t list_origin;		// contient la liste de toutes les commandes à lancer ainsi que leur argument, leur entrée et leur sortie une fois la ligne de commandes analysée
@@ -78,6 +80,7 @@ int main(int argc, char **argv)
 	// TRAITEMENT
 	
 	
+	// premier affichage lorsqu'on ouvre le mini-shell
 	printf("Bienvenue sur le coquillage ! :D\n");
 	
 	// Boucle d'attente des commandes
@@ -98,6 +101,7 @@ int main(int argc, char **argv)
 			fprintf( stderr, "erreur de lecture\n");
 			exit(1);
 		}
+		// on copie le pointeur vers le tampon afin de ne pas "décaler" le pointeur original
 		pointer = tampon;
 		
 		// Ici on remplace le retour chariot à la fin de la chaine de caractère par une fin de chaine de caractère
@@ -120,6 +124,8 @@ int main(int argc, char **argv)
 		{
 
 			// Analyse de la ligne de commande
+			
+			// on initialise tous les avertisseurs à zéro, car on n'a encore rien fait
 			analyseEnCours = 0;
 			argumentEnCours = 0;
 			redirection_sortie = 0;
@@ -129,62 +135,108 @@ int main(int argc, char **argv)
 			//attention_redirection_entree = 0;
 			attention_redirection_sortie_entree = 0;
 			faire_la_redirection = 0;
+			restaurerSortie = 0;
+			restaurerEntree = 0;
+			// on crée une structure qui contiendra la commande et ses caractéristiques (arguments, fichier d'entrée, fichier de sortie)
 			list_origin = malloc( sizeof( list_process_environment_t ) );
 			list_origin = NULL;
+			// on initialise les arguments à une chaine vide, au cas où il n'y en aurait pas
+			// TODO vérifier que ça a encore du sens quand on appelera execl
 			strcpy( argument, "" );
 			
+			// dans un premier temps, on analyse juste ce qui a été écrit
+			// ensuite, on remplit la structure list_process_environment_t avec les mots analysés, chacun dans son rôle : commande, argument, fichier d'entrée ou fichier de sortie
+			// TODO ce commentaire sera peut-être caduque/incomplet si on met les forks et execs dans ce while
 			while( analyseEnCours == 0 )
 			{
+				// on sort de ce if en arrivant à la fin de la commande tapée par l'utilisateur
+				// la fonction read_and_move_forward enregistre un mot (séparé par une espace) dans "mot" et fait avancer le pointeur jusqu'au prochain mot
 				if( read_and_move_forward( &pointer, mot ) != 0 )
 				{
 					//fprintf( stderr, "DEBUG mot: '%s'.\n",mot);
 					
+					// cas où l'utilisateur demande une redirection de la sortie vers un fichier
 					if( !strcmp( mot, ">" ) )
 					{
+						// on retient que le prochain mot sera le fichier vers où rediriger
 						redirection_sortie = 1;
 						attention_redirection_sortie = 1;
+						// on prévient également qu'on en a fini des éventuels arguments de la commande
 						argumentEnCours = 0;
 						//fprintf( stderr, "DEBUG redirection: %s\n",mot);
 						//fprintf( stderr, "DEBUG argumentEnCours: '%d'.\n",argumentEnCours);
 					}
+					
+					// cas où l'utilisateur demande une redirection de l'entrée vers un fichier
 					else if ( !strcmp( mot, "<" ) )
 					{
+						// on retient que le prochain mot sera le fichier vers où rediriger
 						redirection_entree = 1;
 						//attention_redirection_entree = 1;
+						// on prévient également qu'on en a fini des éventuels arguments de la commande
 						argumentEnCours = 0;
 						//fprintf( stderr, "DEBUG redirection: %s\n",mot);
 						//fprintf( stderr, "DEBUG argumentEnCours: '%d'.\n",argumentEnCours);
 					}
+					
+					// cas où l'utilisateur demande une redirection de la sortie d'une commande vers l'entrée d'une autre
 					else if( !strcmp( mot, "|" ) )
 					{
+						// on retient que le prochain mot sera la deuxième commande de la paire qui s'échange les infos
 						redirection_sortie_entree = 1;
 						attention_redirection_sortie_entree = 1;
+						// on prévient également qu'on en a fini des éventuels arguments de la première commande de la paire
 						argumentEnCours = 0;
 						//fprintf( stderr, "DEBUG redirection : %s\n",mot);
 						//fprintf( stderr, "DEBUG argumentEnCours: '%d'.\n",argumentEnCours);
 					}
+					
+					// cas où le mot lu n'annonce pas une redirection des flux de données
 					else
 					{
+						// si le dernier mot lu était une commande ou un argument, le suivant est forcément un argument
+						// TODO gestion de plusieurs arguments ?
 						if( argumentEnCours == 1 )
 						{
 							//fprintf( stderr, "DEBUG argument: '%s'.\n",mot);
+							// on copie le mot dans une variable intermédiaire, pour remplir plus tard une structure pour la commande courante
 							strcpy( argument, mot );
 						}
+						
+						// si le dernier mot lu était ">", le mot suivant est le nom du fichier dans lequel rediriger la sortie
 						else if( redirection_sortie == 1 )
 						{
+							// on remet cet avertisseur à 0, car la redirection est traitée, on passe à autre chose
 							redirection_sortie = 0;
+							// on utilise la fonction qui redirige la sortie
+							// (on lui passe "mot" qui contient le nom du fichier à créer 
+							// et "sortie_std" que la fonction remplira avec le descripteur de fichier associé)
 							mask_stdout( mot, &sortie_std );
 							//fprintf( stderr, "DEBUG fichier sortie: '%s'.\n",mot);
+							restaurerSortie = 1;
 						}
+						
+						// si le dernier mot lu était "<", le mot suivant est le nom du fichier vers lequel rediriger l'entrée
 						else if( redirection_entree == 1 )
 						{
+							// on remet cet avertisseur à 0, car la redirection est traitée, on passe à autre chose
 							redirection_entree = 0;
+							
+							// cas où l'utilisateur redirige deux fois l'entrée d'une commande, une fois avec "|" et l'autre avec "<"
+							// par exemple : cmd1 | cmd2 < fichier
+							// dans ce cas, on ignore le pipe, on utilise le fichier spécifié (l'algorithme l'implique tout seul)
+							// mais surtout, on prévient l'utilisateur
 							if ( attention_redirection_sortie_entree == 1 )
 							{
 								fprintf( stderr, "DEBUG: Attention le pipe ne devrait pas prendre le dessus sur '<'.\n");
 							}
+							// si aucun "|" n'a été appelé avant ce "<", tout va bien
+							// on utilise la fonction qui redirige l'entrée
+							// (on lui passe "mot" qui contient le nom du fichier à créer 
+							// et "sortie_std" que la fonction remplira avec le descripteur de fichier associé)
 							if ( attention_redirection_sortie_entree == 0 )
 								mask_stdin( mot, &entree_std );
+							// STOP
 							else
 								mask_stdin( mot, &fp[0] );
 							//fprintf( stderr, "DEBUG fichier entrée: '%s'.\n",mot);
@@ -240,6 +292,35 @@ int main(int argc, char **argv)
 						//fprintf( stderr, "DEBUG sortie_std: '%d'.\n", sortie_std );
 						list_origin = add_process_env( list_origin, commande, argument, entree_std, sortie_std );
 						//fprintf( stderr, "TEST1.\n");
+						
+						// On se divise !!
+						processus = fork();
+						if(processus == -1)
+							fprintf( stderr, "Ouille... grosse erreur, je n'ai pas réussi à créer le processus fils !\n" );
+						// Si je suis le fils
+						if(processus == 0)
+						{
+							// j'exécute la commande demandée
+							if ( strcmp(argument,"") == 0 )
+								execlExit= execl( commande, commande, NULL );
+							else
+								execlExit= execl( commande, commande, argument, NULL );
+							// je sors en erreur si execl à un problème d'exécution
+							if( execlExit < 0 ) fprintf( stderr, "Erreur d'exécution, la commande est peut-être inconnue !\n" );
+							exit( 0 );
+						}		
+						// Sinon, je suis le père
+						else
+						{
+							if ( restaurerSortie == 1 )
+							{
+								restore_stdout( sortie_std );
+								restaurerSortie = 0;
+							}
+							
+							// Et j'attends la fin de mes fils
+							processus=wait(&statusFils);
+						}
 					}
 					else
 					{
@@ -260,19 +341,19 @@ int main(int argc, char **argv)
 					}
 				}
 			}
-			fprintf( stderr, "TEST liste niveau 1.\n");
-			fprintf( stderr, "DEBUG command: '%s'.\n", list_origin->command );
-			fprintf( stderr, "DEBUG args: '%s'.\n", list_origin->args );
-			fprintf( stderr, "DEBUG stdin_fd: '%d'.\n", list_origin->stdin_fd );
-			fprintf( stderr, "DEBUG stdout_fd: '%d'.\n", list_origin->stdout_fd );
-			fprintf( stderr, "DEBUG next: '%p'.\n", list_origin->next );
-			
-			fprintf( stderr, "TEST liste niveau 2.\n");
-			fprintf( stderr, "DEBUG command: '%s'.\n", (list_origin->next)->command );
-			fprintf( stderr, "DEBUG args: '%s'.\n", (list_origin->next)->args );
-			fprintf( stderr, "DEBUG stdin_fd: '%d'.\n", (list_origin->next)->stdin_fd );
-			fprintf( stderr, "DEBUG stdout_fd: '%d'.\n", (list_origin->next)->stdout_fd );
-			fprintf( stderr, "DEBUG next: '%p'.\n", (list_origin->next)->next );
+			//~ fprintf( stderr, "TEST liste niveau 1.\n");
+			//~ fprintf( stderr, "DEBUG command: '%s'.\n", list_origin->command );
+			//~ fprintf( stderr, "DEBUG args: '%s'.\n", list_origin->args );
+			//~ fprintf( stderr, "DEBUG stdin_fd: '%d'.\n", list_origin->stdin_fd );
+			//~ fprintf( stderr, "DEBUG stdout_fd: '%d'.\n", list_origin->stdout_fd );
+			//~ fprintf( stderr, "DEBUG next: '%p'.\n", list_origin->next );
+			//~ 
+			//~ fprintf( stderr, "TEST liste niveau 2.\n");
+			//~ fprintf( stderr, "DEBUG command: '%s'.\n", (list_origin->next)->command );
+			//~ fprintf( stderr, "DEBUG args: '%s'.\n", (list_origin->next)->args );
+			//~ fprintf( stderr, "DEBUG stdin_fd: '%d'.\n", (list_origin->next)->stdin_fd );
+			//~ fprintf( stderr, "DEBUG stdout_fd: '%d'.\n", (list_origin->next)->stdout_fd );
+			//~ fprintf( stderr, "DEBUG next: '%p'.\n", (list_origin->next)->next );
 			
 			//restore_stdout( sortie_std );
 			//restore_stdin( entree_std );

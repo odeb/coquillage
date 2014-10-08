@@ -85,11 +85,11 @@ list_process_environment_t add_process_env( list_process_environment_t origin, c
     pro_env->stdout_fd = fdout;
     pro_env->next = NULL;
     
-    fprintf( stderr, "DEBUGDEBUG command: '%s'.\n", pro_env->command );
-    fprintf( stderr, "DEBUGDEBUG args: '%s'.\n", pro_env->args );
-    fprintf( stderr, "DEBUGDEBUG stdin_fd: '%d'.\n", pro_env->stdin_fd );
-    fprintf( stderr, "DEBUGDEBUG stdout_fd: '%d'.\n", pro_env->stdout_fd );
-    fprintf( stderr, "DEBUGDEBUG next: '%p'.\n", pro_env->next );
+    //~ fprintf( stderr, "DEBUGDEBUG command: '%s'.\n", pro_env->command );
+    //~ fprintf( stderr, "DEBUGDEBUG args: '%s'.\n", pro_env->args );
+    //~ fprintf( stderr, "DEBUGDEBUG stdin_fd: '%d'.\n", pro_env->stdin_fd );
+    //~ fprintf( stderr, "DEBUGDEBUG stdout_fd: '%d'.\n", pro_env->stdout_fd );
+    //~ fprintf( stderr, "DEBUGDEBUG next: '%p'.\n", pro_env->next );
     
     //fprintf( stderr, "TEST2.\n");
     
