@@ -1,0 +1,114 @@
+helloworld
+helloworld -b
+
+helloworld > t1
+helloworld -b > t2
+
+codify < t1
+codify t1 < t2
+
+codify < t1 > t3
+codify > t4 < t1
+codify t2 < t1 > t5
+
+helloworld | codify
+helloworld -b | codify
+helloworld -b | codify t4
+helloworld | codify t4
+
+helloworld > t5 | codify
+codify < t5 | codify
+helloworld | codify > t6
+helloworld | codify < t6
+helloworld > t7 | codify > t8
+helloworld > t9 | codify < t1
+codify < t2 | codify > t10
+codify < t3 | codify < t4
+
+codify < t4 > t11 | codify
+codify < t4 > t12 | codify > t13
+codify < t4 > t14 | codify < t11
+codify < t4 > t15 | codify < t11 > t16
+
+
+helloworld | codify | codify
+
+
+helloworld | codify | codify
+helloworld -b | codify | codify
+helloworld -b | codify t4 | codify
+helloworld | codify t4 | codify
+
+helloworld > t17 | codify | codify
+helloworld < t5 | codify | codify
+helloworld | codify > t18 | codify
+helloworld | codify < t6 | codify
+helloworld > t19 | codify > t20 | codify
+helloworld > t21 | codify < t1 | codify
+helloworld < t2 | codify > t22 | codify
+helloworld < t3 | codify < t4 | codify
+
+codify < t4 > t23 | codify | codify
+codify < t4 > t24 | codify > t25 | codify
+codify < t4 > t26 | codify < t11 | codify
+codify < t4 > t27 | codify < t11 > t28 | codify
+
+
+helloworld | codify | codify > t29
+helloworld -b | codify | codify > t30
+helloworld -b | codify t4 | codify > t31
+helloworld | codify t4 | codify > t32
+
+helloworld > t41 | codify | codify > t33
+helloworld < t5 | codify | codify > t34
+helloworld | codify > t42 | codify > t35
+helloworld | codify < t6 | codify > t36
+helloworld > t43 | codify > t44 | codify > t37
+helloworld > t45 | codify < t1 | codify > t38
+helloworld < t2 | codify > t46 | codify > t39
+helloworld < t3 | codify < t4 | codify > t40
+
+codify < t4 > t47 | codify | codify > t53
+codify < t4 > t48 | codify > t51 | codify > t54
+codify < t4 > t49 | codify < t11 | codify > t55
+codify < t4 > t50 | codify < t11 > t52 | codify > t56
+
+
+helloworld | codify | codify < t3
+helloworld -b | codify | codify < t3
+helloworld -b | codify t4 | codify < t3
+helloworld | codify t4 | codify < t3
+
+helloworld > t57 | codify | codify < t3
+helloworld < t5 | codify | codify < t3
+helloworld | codify > t58 | codify < t3
+helloworld | codify < t6 | codify < t3
+helloworld > t59 | codify > t61 | codify < t3
+helloworld > t60 | codify < t1 | codify < t3
+helloworld < t2 | codify > t62 | codify < t3
+helloworld < t3 | codify < t4 | codify < t3
+
+codify < t4 > t63 | codify | codify < t3
+codify < t4 > t64 | codify > t67 | codify < t3
+codify < t4 > t65 | codify < t11 | codify < t3
+codify < t4 > t66 | codify < t11 > t68 | codify < t3
+
+
+helloworld | codify | codify < t3 > t69
+helloworld -b | codify | codify < t3 > t70
+helloworld -b | codify t4 | codify < t3 > t71
+helloworld | codify t4 | codify < t3 > t72
+
+helloworld > t73 | codify | codify < t3 > t79
+helloworld < t5 | codify | codify < t3 > t80
+helloworld | codify > t76 | codify < t3 > t81
+helloworld | codify < t6 | codify < t3 > t82
+helloworld > t74 | codify > t77 | codify < t3 > t83
+helloworld > t75 | codify < t1 | codify < t3 > t84
+helloworld < t2 | codify > t78 | codify < t3 > t85
+helloworld < t3 | codify < t4 | codify < t3 > t86
+
+codify < t4 > t87 | codify | codify < t3 > t93
+codify < t4 > t88 | codify > t91 | codify < t3 > t94
+codify < t4 > t89 | codify < t11 | codify < t3 > t95
+codify < t4 > t90 | codify < t11 > t92 | codify < t3 > t96
