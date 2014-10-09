@@ -255,15 +255,16 @@ int main(int argc, char **argv)
 							
 							if( faire_la_redirection == 0 )
 							{
-								pipe( fp );
-								copieEcriture = dup( 1 );
-								close( 1 );
-								copieEcriturePipe = dup( fp[1] );
-								fprintf( stderr, "MEGADEBUG copieEcriturePipe: '%d'.\n", copieEcriturePipe);
-								close( fp[1] );
-								
+
 								if( attention_redirection_sortie == 0 )
-								{
+								{	
+									pipe( fp );
+									copieEcriture = dup( 1 );
+									close( 1 );
+									copieEcriturePipe = dup( fp[1] );
+									fprintf( stderr, "MEGADEBUG copieEcriturePipe: '%d'.\n", copieEcriturePipe);
+									close( fp[1] );
+										
 									list_origin = add_process_env( list_origin, commande, argument, entree_std, fp[1] );
 									
 									// On se divise !!
@@ -311,6 +312,47 @@ int main(int argc, char **argv)
 								{
 									fprintf( stderr, "DEBUG: Attention le pipe ne devrait pas prendre le dessus sur '>'.\n");
 									list_origin = add_process_env( list_origin, commande, argument, entree_std, sortie_std );
+									
+									// On se divise !!
+									processus = fork();
+									if(processus == -1)
+										fprintf( stderr, "Ouille... grosse erreur, je n'ai pas réussi à créer le processus fils !\n" );
+									// Si je suis le fils
+									if(processus == 0)
+									{
+										// j'exécute la commande demandée
+										if ( strcmp(argument,"") == 0 )
+											execlExit= execl( commande, commande, NULL );
+										else
+										{
+											fprintf( stderr, "TITAN DEBUG: '%s'\n", argument );
+											execlExit= execl( commande, commande, argument, NULL );
+										}
+										// je sors en erreur si execl à un problème d'exécution
+										if( execlExit < 0 ) fprintf( stderr, "Erreur d'exécution, la commande est peut-être inconnue !\n" );
+										exit( 0 );
+									}		
+									// Sinon, je suis le père
+									else
+									{
+										// Et j'attends la fin de mes fils
+										processus=wait(&statusFils);
+																		
+										if ( restaurerSortie == 1 )
+										{
+											restore_stdout( sortie_std );
+											restaurerSortie = 0;
+										}
+										if ( restaurerEntree == 1 )
+										{
+											restore_stdin( entree_std );
+											restaurerEntree = 0;
+										}
+
+										//close ( copieEcriturePipe );
+										//dup( copieEcriture );
+										//close( copieEcriture );
+									}
 								}
 							}
 							else
@@ -443,7 +485,7 @@ int main(int argc, char **argv)
 							copieLecture = dup( 0 );
 							close( 0 );
 							copieLecturePipe = dup( fp[0]);
-							//fprintf( stderr, "DEBUG if.\n");
+							fprintf( stderr, "DEBUG if '%d'.\n",copieLecturePipe);
 							list_origin = add_process_env( list_origin, commande, argument, fp[0], 1 );
 							// On se divise !!
 							processus = fork();
