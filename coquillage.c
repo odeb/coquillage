@@ -66,12 +66,12 @@ int main(int argc, char **argv)
 	int redirection_sortie_entree;				// prévient l'analyseur qu'au prochain "mot" il faudra traiter une redirection de la sortie de la "commande" précédente vers le prochain "mot"
 	int faire_la_redirection;					// prévient l'analyseur qu'une fois qu'il a détecté un "|" alors à partir de ce moment il faudra traiter différement l'ajout de la commande à la structure, en particulier son entrée qui ne sera plus la standard
 	int attention_redirection_sortie;			// prévient l'analyseur qu'il y a eu un ">" avant un "|" et qu'il devra prendre en compte en priorité le ">"
-	//int	attention_redirection_entree;
-	int	attention_redirection_sortie_entree;	// prévient l'analyseur qu'il y a eu un "|" avant un "<" et qu'il devra prendre en compte en priorité le "<"
+	int	attention_redirection_entree;			// prévient l'analyseur qu'il y a eu un "|" avant un "<" et qu'il devra prendre en compte en priorité le "<"
+	//int	attention_redirection_sortie_entree;	// prévient l'analyseur qu'il y a eu un "|" avant un "<" et qu'il devra prendre en compte en priorité le "<"
 	int restaurerSortie;						// prévient l'analyseur qu'il faut restaurer la sortie standard
 	int restaurerEntree;						// prévient l'analyseur qu'il faut restaurer l'entrée standard
     int fp[2];									// contient les 2 descripteurs pour faire des "|"
-    int fp_temporaire;							// contient le descripteur d'entrée temporaire avant d'appeler de nouveau pipe() afin de bien gérer le "|"
+    //int fp_temporaire;							// contient le descripteur d'entrée temporaire avant d'appeler de nouveau pipe() afin de bien gérer le "|"
     int copieEcriture;							// contient la copie temporaire de la sortie standard
     int copieEcriturePipe;						// contient la copie temporaire du côté écriture du pipe
     int copieLecture;							// contient la copie temporaire de l'entrée standard
@@ -136,11 +136,13 @@ int main(int argc, char **argv)
 			redirection_entree = 0;
 			redirection_sortie_entree = 0;
 			attention_redirection_sortie = 0;
-			//attention_redirection_entree = 0;
-			attention_redirection_sortie_entree = 0;
+			attention_redirection_entree = 0;
+			//attention_redirection_sortie_entree = 0;
 			faire_la_redirection = 0;
 			restaurerSortie = 0;
 			restaurerEntree = 0;
+			fp[0] = 0;
+			fp[1] = 0;
 			// on crée une structure qui contiendra la commande et ses caractéristiques (arguments, fichier d'entrée, fichier de sortie)
 			list_origin = malloc( sizeof( list_process_environment_t ) );
 			list_origin = NULL;
@@ -176,6 +178,7 @@ int main(int argc, char **argv)
 					{
 						// on retient que le prochain mot sera le fichier vers où rediriger
 						redirection_entree = 1;
+						attention_redirection_entree = 1;
 						//attention_redirection_entree = 1;
 						// on prévient également qu'on en a fini des éventuels arguments de la commande
 						argumentEnCours = 0;
@@ -188,7 +191,7 @@ int main(int argc, char **argv)
 					{
 						// on retient que le prochain mot sera la deuxième commande de la paire qui s'échange les infos
 						redirection_sortie_entree = 1;
-						attention_redirection_sortie_entree = 1;
+						//attention_redirection_sortie_entree = 1;
 						// on prévient également qu'on en a fini des éventuels arguments de la première commande de la paire
 						argumentEnCours = 0;
 						//fprintf( stderr, "DEBUG redirection : %s\n",mot);
@@ -230,23 +233,28 @@ int main(int argc, char **argv)
 							// on utilise la fonction qui redirige l'entrée
 							// (on lui passe "mot" qui contient le nom du fichier à créer 
 							// et "sortie_std" que la fonction remplira avec le descripteur de fichier associé)
-							if ( attention_redirection_sortie_entree == 0 )
-							{
+							//if ( attention_redirection_sortie_entree == 0 )
+							//{
 								// on utilise la fonction qui redirige l'entrée
 								// (on lui passe "mot" qui contient le nom du fichier à créer 
 								// et "entree_std" que la fonction remplira avec le descripteur de fichier associé)
 								mask_stdin( mot, &entree_std );
 								restaurerEntree = 1;
-							}
+							//}
 							// cas où l'utilisateur redirige deux fois l'entrée d'une commande, une fois avec "|" et l'autre avec "<"
 							// par exemple : cmd1 | cmd2 < fichier
 							// dans ce cas, on ignore le pipe, on utilise le fichier spécifié (on masque fp[0] par le descripteur du fichier)
 							// mais surtout, on prévient l'utilisateur
-							else
-							{
-								fprintf( stderr, "DEBUG: Attention le pipe ne devrait pas prendre le dessus sur '<'.\n");
-								mask_stdin( mot, &fp[0] );
-							}
+							//else
+							//{
+								//fprintf( stderr, "DEBUG: Attention le pipe ne devrait pas prendre le dessus sur '<' (%d).\n",fp[0]);
+								
+								//mask_stdin( mot, &fp[0] );
+								//mask_stdin( mot, &entree_std );
+								//entree_std=1;
+								//mask_stdin( mot, &entree_std );
+								//restaurerEntree = 1;
+							//}
 							//fprintf( stderr, "DEBUG fichier entrée: '%s'.\n",mot);
 						}
 						else if( redirection_sortie_entree == 1 )
@@ -357,8 +365,8 @@ int main(int argc, char **argv)
 							}
 							else
 							{
-								fp_temporaire = fp[0];
-								pipe( fp );
+								//~ fp_temporaire = fp[0];
+								//~ pipe( fp );
 								
 								//~ copieLecture = dup( 0 );
 								//~ close( 0 );
@@ -367,7 +375,74 @@ int main(int argc, char **argv)
 								
 								if( attention_redirection_sortie == 0 )
 								{
-									list_origin = add_process_env( list_origin, commande, argument, fp_temporaire, fp[1] );
+									//list_origin = add_process_env( list_origin, commande, argument, fp_temporaire, fp[1] );
+
+									copieLecture = dup( 0 );
+									close( 0 );
+									copieLecturePipe = dup( fp[0]);
+									fprintf( stderr, "DEBUG if '%d'.\n",copieLecturePipe);
+									close( fp[0] );
+									
+									pipe( fp );
+									copieEcriture = dup( 1 );
+									close( 1 );
+									copieEcriturePipe = dup( fp[1] );
+									fprintf( stderr, "MEGADEBUG copieEcriturePipe: '%d'.\n", copieEcriturePipe);
+									close( fp[1] );
+									
+									list_origin = add_process_env( list_origin, commande, argument, fp[0], 1 );
+									// On se divise !!
+									processus = fork();
+									if(processus == -1)
+										fprintf( stderr, "Ouille... grosse erreur, je n'ai pas réussi à créer le processus fils !\n" );
+									// Si je suis le fils
+									if(processus == 0)
+									{
+										// j'exécute la commande demandée
+										if ( strcmp(argument,"") == 0 )
+											execlExit= execl( commande, commande, NULL );
+										else
+											execlExit= execl( commande, commande, argument, NULL );
+										// je sors en erreur si execl à un problème d'exécution
+										if( execlExit < 0 ) fprintf( stderr, "Erreur d'exécution, la commande est peut-être inconnue !\n" );
+										exit( 0 );
+									}		
+									// Sinon, je suis le père
+									else
+									{
+										// Et j'attends la fin de mes fils
+										processus=wait(&statusFils);
+																	
+										if ( restaurerSortie == 1 )
+										{
+											restore_stdout( sortie_std );
+											restaurerSortie = 0;
+										}
+										if ( restaurerEntree == 1 )
+										{
+											restore_stdin( entree_std );
+											restaurerEntree = 0;
+										}
+										
+										close ( copieLecturePipe );
+										dup( copieLecture );
+										close( copieLecture );
+										
+										close ( copieEcriturePipe );
+										dup( copieEcriture );
+										close( copieEcriture );
+									}									
+								}
+								else
+								{
+									fprintf( stderr, "DEBUG: Attention le pipe ne devrait pas prendre le dessus sur '>'.\n");
+									//list_origin = add_process_env( list_origin, commande, argument, fp_temporaire, sortie_std );
+									
+									copieLecture = dup( 0 );
+									close( 0 );
+									copieLecturePipe = dup( fp[0]);
+									fprintf( stderr, "DEBUG if '%d'.\n",copieLecturePipe);
+									close( fp[0] );
 									
 									// On se divise !!
 									processus = fork();
@@ -388,11 +463,9 @@ int main(int argc, char **argv)
 									// Sinon, je suis le père
 									else
 									{
-										
-										close ( copieLecturePipe );
-										dup( copieLecture );
-										close( copieLecture );
-										
+										// Et j'attends la fin de mes fils
+										processus=wait(&statusFils);
+																	
 										if ( restaurerSortie == 1 )
 										{
 											restore_stdout( sortie_std );
@@ -403,21 +476,20 @@ int main(int argc, char **argv)
 											restore_stdin( entree_std );
 											restaurerEntree = 0;
 										}
-										// Et j'attends la fin de mes fils
-										processus=wait(&statusFils);
-									}									
-								}
-								else
-								{
-									fprintf( stderr, "DEBUG: Attention le pipe ne devrait pas prendre le dessus sur '>'.\n");
-									list_origin = add_process_env( list_origin, commande, argument, fp_temporaire, sortie_std );
+										
+										close ( copieLecturePipe );
+										dup( copieLecture );
+										close( copieLecture );
+									}
+									
 								}
 							}
 							strcpy( argument, "" );
 							strcpy( commande, mot );
-							fprintf( stderr, "DEBUG processus à lancer: '%s'.\n",commande);
+							//fprintf( stderr, "DEBUG processus à lancer: '%s'.\n",commande);
 							faire_la_redirection = 1;
 							attention_redirection_sortie = 0;
+							attention_redirection_entree = 0;
 						}
 						else
 						{
@@ -431,7 +503,7 @@ int main(int argc, char **argv)
 				else
 				{
 					analyseEnCours = 1;
-					if( faire_la_redirection == 0 )
+					if( faire_la_redirection == 0)
 					{
 						//fprintf( stderr, "TEST1.\n");
 						//fprintf( stderr, "DEBUG commande: '%s'.\n", commande );
@@ -461,6 +533,9 @@ int main(int argc, char **argv)
 						// Sinon, je suis le père
 						else
 						{
+							// Et j'attends la fin de mes fils
+							processus=wait(&statusFils);
+							
 							if ( restaurerSortie == 1 )
 							{
 								restore_stdout( sortie_std );
@@ -471,8 +546,7 @@ int main(int argc, char **argv)
 								restore_stdin( entree_std );
 								restaurerEntree = 0;
 							}
-							// Et j'attends la fin de mes fils
-							processus=wait(&statusFils);
+
 						}
 					}
 					else
@@ -480,12 +554,19 @@ int main(int argc, char **argv)
 						//fprintf( stderr, "DEBUG attention_redirection_sortie: '%d'.\n", attention_redirection_sortie );
 						//fprintf( stderr, "DEBUG sortie_std: '%d'.\n", sortie_std );
 						//fprintf( stderr, "DEBUG fp[1]: '%d'.\n", fp[1] );
-						if( attention_redirection_sortie == 0 )
+						//~ if( attention_redirection_sortie == 0 )
+						//~ {
+						if ( attention_redirection_entree == 0 )
 						{
 							copieLecture = dup( 0 );
 							close( 0 );
-							copieLecturePipe = dup( fp[0]);
-							fprintf( stderr, "DEBUG if '%d'.\n",copieLecturePipe);
+							fprintf( stderr, "DEBUG ULTIME '%d'.\n", fp[0]);
+							copieLecturePipe = dup( fp[0] );
+							close( fp[0] );
+							
+							fprintf( stderr, "DEBUG ULTIME '%d' '%d'.\n", copieLecture, copieLecturePipe);
+							
+							fprintf( stderr, "DEBUG 2 if.\n");
 							list_origin = add_process_env( list_origin, commande, argument, fp[0], 1 );
 							// On se divise !!
 							processus = fork();
@@ -524,13 +605,55 @@ int main(int argc, char **argv)
 								dup( copieLecture );
 								close( copieLecture );
 							}									
-							
 						}
 						else
 						{
-							//fprintf( stderr, "DEBUG else.\n");
-							list_origin = add_process_env( list_origin, commande, argument, fp[0], sortie_std );
+							fprintf( stderr, "DEBUG: Attention le pipe ne devrait pas prendre le dessus sur '<' (%d).\n",fp[0]);
+							//close ( fp[0] );
+							
+							fprintf( stderr, "DEBUG ULTIME '%d'.\n", fp[1]);
+							
+							// On se divise !!
+							processus = fork();
+							if(processus == -1)
+								fprintf( stderr, "Ouille... grosse erreur, je n'ai pas réussi à créer le processus fils !\n" );
+							// Si je suis le fils
+							if(processus == 0)
+							{
+								// j'exécute la commande demandée
+								if ( strcmp(argument,"") == 0 )
+									execlExit= execl( commande, commande, NULL );
+								else
+									execlExit= execl( commande, commande, argument, NULL );
+								// je sors en erreur si execl à un problème d'exécution
+								if( execlExit < 0 ) fprintf( stderr, "Erreur d'exécution, la commande est peut-être inconnue !\n" );
+								exit( 0 );
+							}		
+							// Sinon, je suis le père
+							else
+							{
+								// Et j'attends la fin de mes fils
+								processus=wait(&statusFils);
+															
+								if ( restaurerSortie == 1 )
+								{
+									restore_stdout( sortie_std );
+									restaurerSortie = 0;
+								}
+								if ( restaurerEntree == 1 )
+								{
+									restore_stdin( entree_std );
+									restaurerEntree = 0;
+								}
+
+							}
 						}
+						//~ }
+						//~ else
+						//~ {
+							//~ //fprintf( stderr, "DEBUG else.\n");
+							//~ list_origin = add_process_env( list_origin, commande, argument, fp[0], sortie_std );
+						//~ }
 						//faire_la_redirection = 0;
 					}
 				}
