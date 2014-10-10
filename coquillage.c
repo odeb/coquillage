@@ -43,8 +43,11 @@ void mask_stdin( const char* nom_fic, int* entree_std );
 void restore_stdin( int entree_std );
 int read_and_move_forward( char** string, char* buffer );
 int forkNexec( char * commande, char * argument );
-
-
+int creationPipe( int fp[2], int * copieEcriture, int * copieEcriturePipe );
+int recuperationPipe( int fp[2], int * copieLecture, int * copieLecturePipe );
+//~ int fermerSortiePipe( int copieEcriture, int copieEcriturePipe );
+//~ int fermerEntreePipe( int copieLecture, int copieLecturePipe );
+int fermerPipe( int * es, int * pipe );
 
 int main(int argc, char **argv)
 {
@@ -73,8 +76,8 @@ int main(int argc, char **argv)
 	int restaurerEntree;						// prévient l'analyseur qu'il faut restaurer l'entrée standard
     int fp[2];									// contient les 2 descripteurs pour faire des "|"
     //int fp_temporaire;							// contient le descripteur d'entrée temporaire avant d'appeler de nouveau pipe() afin de bien gérer le "|"
-    int copieEcriture;							// contient la copie temporaire de la sortie standard
-    int copieEcriturePipe;						// contient la copie temporaire du côté écriture du pipe
+	int copieEcriture;							// contient la copie temporaire de la sortie standard
+	int copieEcriturePipe;						// contient la copie temporaire du côté écriture du pipe
     int copieLecture;							// contient la copie temporaire de l'entrée standard
     int copieLecturePipe;						// contient la copie temporaire du côté lecture du pipe
     list_process_environment_t list_origin;		// contient la liste de toutes les commandes à lancer ainsi que leur argument, leur entrée et leur sortie une fois la ligne de commandes analysée
@@ -267,13 +270,23 @@ int main(int argc, char **argv)
 
 								if( attention_redirection_sortie == 0 )
 								{	
-									pipe( fp );
-									copieEcriture = dup( 1 );
-									close( 1 );
-									copieEcriturePipe = dup( fp[1] );
-									fprintf( stderr, "MEGADEBUG copieEcriturePipe: '%d'.\n", copieEcriturePipe);
-									close( fp[1] );
-										
+									//~ fprintf( stderr, "MEGADEBUG fp 0 & 1: '%d' '%d'.\n", fp[0], fp[1] );
+									//~ pipe( fp );
+									//~ fprintf( stderr, "MEGADEBUG fp 0 & 1: '%d' '%d'.\n", fp[0], fp[1] );
+									//~ copieEcriture = dup( 1 );
+									//~ fprintf( stderr, "MEGADEBUG copieEcriture: '%d'.\n", copieEcriture);
+									//~ close( 1 );
+									//~ copieEcriturePipe = dup( fp[1] );
+									//~ fprintf( stderr, "MEGADEBUG copieEcriturePipe: '%d'.\n", copieEcriturePipe);
+									//~ close( fp[1] );
+									
+									creationPipe( fp, &copieEcriture, &copieEcriturePipe );
+									fprintf( stderr, "MEGADEBUG 2 fp 0 & 1: '%d' '%d'.\n", fp[0], fp[1] );
+									fprintf( stderr, "MEGADEBUG 2 copieEcriture: '%d'.\n", copieEcriture);
+									fprintf( stderr, "MEGADEBUG 2 copieEcriturePipe: '%d'.\n", copieEcriturePipe);
+									
+									//fprintf( stderr, "MEGADEBUG fp 0 & 1: '%d' '%d'.\n", fp[0], fp[1] );
+									
 									//list_origin = add_process_env( list_origin, commande, argument, entree_std, fp[1] );
 									
 									// fork() puis execution de la commande avec son argument
@@ -290,9 +303,11 @@ int main(int argc, char **argv)
 											restaurerEntree = 0;
 									}
 
-									close ( copieEcriturePipe );
-									dup( copieEcriture );
-									close( copieEcriture );
+									fermerPipe( &copieEcriture, &copieEcriturePipe );
+
+									//~ close ( copieEcriturePipe );
+									//~ dup( copieEcriture );
+									//~ close( copieEcriture );
 								}
 								else
 								{
@@ -325,18 +340,22 @@ int main(int argc, char **argv)
 								{
 									//list_origin = add_process_env( list_origin, commande, argument, fp_temporaire, fp[1] );
 
-									copieLecture = dup( 0 );
-									close( 0 );
-									copieLecturePipe = dup( fp[0]);
-									fprintf( stderr, "DEBUG if '%d'.\n",copieLecturePipe);
-									close( fp[0] );
+									//~ copieLecture = dup( 0 );
+									//~ close( 0 );
+									//~ copieLecturePipe = dup( fp[0]);
+									//~ fprintf( stderr, "DEBUG if '%d'.\n",copieLecturePipe);
+									//~ close( fp[0] );
 									
-									pipe( fp );
-									copieEcriture = dup( 1 );
-									close( 1 );
-									copieEcriturePipe = dup( fp[1] );
-									fprintf( stderr, "MEGADEBUG copieEcriturePipe: '%d'.\n", copieEcriturePipe);
-									close( fp[1] );
+									recuperationPipe( fp, &copieLecture, &copieLecturePipe );
+									
+									//~ pipe( fp );
+									//~ copieEcriture = dup( 1 );
+									//~ close( 1 );
+									//~ copieEcriturePipe = dup( fp[1] );
+									//~ fprintf( stderr, "MEGADEBUG copieEcriturePipe: '%d'.\n", copieEcriturePipe);
+									//~ close( fp[1] );
+									
+									creationPipe( fp, &copieEcriture, &copieEcriturePipe );
 									
 									list_origin = add_process_env( list_origin, commande, argument, fp[0], 1 );
 									
@@ -354,24 +373,30 @@ int main(int argc, char **argv)
 										restaurerEntree = 0;
 									}
 									
-									close ( copieLecturePipe );
-									dup( copieLecture );
-									close( copieLecture );
+									//~ close ( copieLecturePipe );
+									//~ dup( copieLecture );
+									//~ close( copieLecture );
 									
-									close ( copieEcriturePipe );
-									dup( copieEcriture );
-									close( copieEcriture );									
+									fermerPipe( &copieLecture, &copieLecturePipe );
+									
+									//~ close ( copieEcriturePipe );
+									//~ dup( copieEcriture );
+									//~ close( copieEcriture );	
+									
+									fermerPipe( &copieEcriture, &copieEcriturePipe );			
 								}
 								else
 								{
 									fprintf( stderr, "DEBUG: Attention le pipe ne devrait pas prendre le dessus sur '>'.\n");
 									//list_origin = add_process_env( list_origin, commande, argument, fp_temporaire, sortie_std );
 									
-									copieLecture = dup( 0 );
-									close( 0 );
-									copieLecturePipe = dup( fp[0]);
-									fprintf( stderr, "DEBUG if '%d'.\n",copieLecturePipe);
-									close( fp[0] );
+									//~ copieLecture = dup( 0 );
+									//~ close( 0 );
+									//~ copieLecturePipe = dup( fp[0]);
+									//~ fprintf( stderr, "DEBUG if '%d'.\n",copieLecturePipe);
+									//~ close( fp[0] );
+									
+									recuperationPipe( fp, &copieLecture, &copieLecturePipe );
 									
 									// fork() puis execution de la commande avec son argument
 									forkNexec( commande, argument );
@@ -387,9 +412,11 @@ int main(int argc, char **argv)
 										restaurerEntree = 0;
 									}
 									
-									close ( copieLecturePipe );
-									dup( copieLecture );
-									close( copieLecture );
+									//~ close ( copieLecturePipe );
+									//~ dup( copieLecture );
+									//~ close( copieLecture );
+									
+									fermerPipe( &copieLecture, &copieLecturePipe );
 									
 								}
 							}
@@ -446,11 +473,13 @@ int main(int argc, char **argv)
 						//~ {
 						if ( attention_redirection_entree == 0 )
 						{
-							copieLecture = dup( 0 );
-							close( 0 );
-							fprintf( stderr, "DEBUG ULTIME '%d'.\n", fp[0]);
-							copieLecturePipe = dup( fp[0] );
-							close( fp[0] );
+							//~ copieLecture = dup( 0 );
+							//~ close( 0 );
+							//~ fprintf( stderr, "DEBUG ULTIME '%d'.\n", fp[0]);
+							//~ copieLecturePipe = dup( fp[0] );
+							//~ close( fp[0] );
+							
+							recuperationPipe( fp, &copieLecture, &copieLecturePipe );
 							
 							fprintf( stderr, "DEBUG ULTIME '%d' '%d'.\n", copieLecture, copieLecturePipe);
 							
@@ -471,9 +500,12 @@ int main(int argc, char **argv)
 								restaurerEntree = 0;
 							}
 							
-							close ( copieLecturePipe );
-							dup( copieLecture );
-							close( copieLecture );								
+							//~ close ( copieLecturePipe );
+							//~ dup( copieLecture );
+							//~ close( copieLecture );			
+							
+							fermerPipe( &copieLecture, &copieLecturePipe );
+												
 						}
 						else
 						{
@@ -618,7 +650,7 @@ int forkNexec( char * commande, char * argument )
 			execlExit= execl( commande, commande, NULL );
 		else
 		{
-			fprintf( stderr, "TITAN DEBUG: '%s'\n", argument );
+			//fprintf( stderr, "TITAN DEBUG: '%s'\n", argument );
 			execlExit= execl( commande, commande, argument, NULL );
 		}
 		// je sors en erreur si execl à un problème d'exécution
@@ -631,5 +663,56 @@ int forkNexec( char * commande, char * argument )
 		// Et j'attends la fin de mes fils
 		processus=wait(&statusFils);
 	}
+	return 0;
+}
+
+int creationPipe( int fp[2], int * copieEcriture, int * copieEcriturePipe )
+{
+	fprintf( stderr, "MEGADEBUG fp 0 & 1: '%d' '%d'.\n", fp[0], fp[1] );
+	pipe( fp );
+	fprintf( stderr, "MEGADEBUG fp 0 & 1: '%d' '%d'.\n", fp[0], fp[1] );
+	*copieEcriture = dup( 1 );
+	fprintf( stderr, "MEGADEBUG copieEcriture: '%d'.\n", *copieEcriture);
+	close( 1 );
+	*copieEcriturePipe = dup( fp[1] );
+	fprintf( stderr, "MEGADEBUG copieEcriturePipe: '%d'.\n", *copieEcriturePipe);
+	close( fp[1] );
+	return 0;
+}
+
+int recuperationPipe( int fp[2], int * copieLecture, int * copieLecturePipe )
+{
+	fprintf( stderr, "MEGADEBUG fp 0 & 1: '%d' '%d'.\n", fp[0], fp[1] );
+	*copieLecture = dup( 0 );
+	fprintf( stderr, "MEGADEBUG copieEcriture: '%d'.\n", *copieLecture);
+	close( 0 );
+	*copieLecturePipe = dup( fp[0]);
+	fprintf( stderr, "MEGADEBUG copieEcriturePipe: '%d'.\n", *copieLecturePipe);
+	close( fp[0] );
+	fprintf( stderr, "MEGADEBUG fp 0 & 1: '%d' '%d'.\n", fp[0], fp[1] );
+	return 0;
+}
+
+//~ int fermerSortiePipe( int copieEcriture, int copieEcriturePipe )
+//~ {
+	//~ close ( copieEcriturePipe );
+	//~ dup( copieEcriture );
+	//~ close( copieEcriture );
+	//~ return 0;
+//~ }
+//~ 
+//~ int fermerEntreePipe( int copieLecture, int copieLecturePipe )
+//~ {
+	//~ close ( copieLecturePipe );
+	//~ dup( copieLecture );
+	//~ close( copieLecture );
+	//~ return 0;
+//~ }
+
+int fermerPipe( int * es, int * pipe )
+{
+	close ( *pipe );
+	dup( *es );
+	close( *es );
 	return 0;
 }
