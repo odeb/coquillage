@@ -6,7 +6,7 @@ LDFLAGS =
 
 OBJ = coquillage.o process_environment.o
  
-all: coquillage
+all: coquillage commands
  
 coquillage: $(OBJ)
 	@$(CXX) -o $@ $^ $(LDFLAGS)
