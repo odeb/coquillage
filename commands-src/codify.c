@@ -64,12 +64,7 @@ int main(int argc, char **argv)
 	
 	// On affiche le contenu du fichier
 	while(read(fd,&caractere,1) > 0)
-	{
-		if( caractere != '\n' )
-			printf("%c",caractere+1);
-	}
-	
-	printf("\n");
+		printf("%c",caractere+1);
 	
 	// On essaye de fermer le fichier
 	close(fd);

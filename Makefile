@@ -14,14 +14,10 @@ coquillage: $(OBJ)
 %.o: %.c
 	@$(CXX) -o $@ -c $< $(CXXFLAGS)
 
-h:
-	@$(CXX) -o $@ helloworld.c $(CXXFLAGS)
-
-c:
-	@$(CXX) -o $@ notre_cat.c $(CXXFLAGS)
-
-codify:
-	@$(CXX) -o $@ codify.c $(CXXFLAGS)
+commands:
+	@$(CXX) -o codify commands-src/codify.c $(CXXFLAGS)
+	@$(CXX) -o c commands-src/notre_cat.c $(CXXFLAGS)
+	@$(CXX) -o h commands-src/helloworld.c $(CXXFLAGS)
 
 clean:
 	@rm -f *.o
