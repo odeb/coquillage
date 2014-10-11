@@ -1,37 +1,56 @@
 h
 h -b
 
+
 h > t1
+	c t1
 h -b > t2
+	c t2
+
 
 codify < t1
 codify t1 < t2
 
 codify < t1 > t3
+	c t3
 codify > t4 < t1
+	c t4
 codify t2 < t1 > t5
+	c t5
+
 
 h | codify
 h -b | codify
 h -b | codify t4
 h | codify t4
 
+
 h > t5 | codify
+	c t5
 codify < t5 | codify
 h | codify > t6
+	c t6
 h | codify < t6
 h > t7 | codify > t8
+	c t7
+	c t8
 h > t9 | codify < t1
+	c t9
 codify < t2 | codify > t10
+	c t10
 codify < t3 | codify < t4
 
+
 codify < t4 > t11 | codify
+	c t11
 codify < t4 > t12 | codify > t13
+	c t12
+	c t13
 codify < t4 > t14 | codify < t11
+	c t14
 codify < t4 > t15 | codify < t11 > t16
-
-
-h | codify | codify
+	c t15
+	c t16
 
 
 h | codify | codify
@@ -39,39 +58,84 @@ h -b | codify | codify
 h -b | codify t4 | codify
 h | codify t4 | codify
 
+
 h > t17 | codify | codify
+	c t17
 h < t5 | codify | codify
 h | codify > t18 | codify
+	c t18
 h | codify < t6 | codify
 h > t19 | codify > t20 | codify
+	c t19
+	c t20
 h > t21 | codify < t1 | codify
+	c t21
 h < t2 | codify > t22 | codify
+	c t22
 h < t3 | codify < t4 | codify
 
+
 codify < t4 > t23 | codify | codify
+	c t23
 codify < t4 > t24 | codify > t25 | codify
+	c t24
+	c t25
 codify < t4 > t26 | codify < t11 | codify
+	c t26
 codify < t4 > t27 | codify < t11 > t28 | codify
+	c t27
+	c t28
 
 
 h | codify | codify > t29
+	c t19
 h -b | codify | codify > t30
+	c t30
 h -b | codify t4 | codify > t31
+	c t31
 h | codify t4 | codify > t32
+	c t32
+
+
 
 h > t41 | codify | codify > t33
+	c t41
+	c t33
 h < t5 | codify | codify > t34
+	c t34
 h | codify > t42 | codify > t35
+	c t42
+	c t35
 h | codify < t6 | codify > t36
+	c t36
 h > t43 | codify > t44 | codify > t37
+	c t43
+	c t44
+	c t37
 h > t45 | codify < t1 | codify > t38
+	c t45
+	c t38
 h < t2 | codify > t46 | codify > t39
+	c t46
+	c t39
 h < t3 | codify < t4 | codify > t40
+	c t40
+
 
 codify < t4 > t47 | codify | codify > t53
+	c t47
+	c t53
 codify < t4 > t48 | codify > t51 | codify > t54
+	c t48
+	c t51
+	c t54
 codify < t4 > t49 | codify < t11 | codify > t55
+	c t49
+	c t55
 codify < t4 > t50 | codify < t11 > t52 | codify > t56
+	c t50
+	c t52
+	c t56
 
 
 h | codify | codify < t3
@@ -79,36 +143,82 @@ h -b | codify | codify < t3
 h -b | codify t4 | codify < t3
 h | codify t4 | codify < t3
 
+
 h > t57 | codify | codify < t3
+	c t57
 h < t5 | codify | codify < t3
 h | codify > t58 | codify < t3
+	c t58
 h | codify < t6 | codify < t3
 h > t59 | codify > t61 | codify < t3
+	c t59
+	c t61
 h > t60 | codify < t1 | codify < t3
+	c t60
 h < t2 | codify > t62 | codify < t3
+	c t62
 h < t3 | codify < t4 | codify < t3
 
+
 codify < t4 > t63 | codify | codify < t3
+	c t63
 codify < t4 > t64 | codify > t67 | codify < t3
+	c t64
+	c t67
 codify < t4 > t65 | codify < t11 | codify < t3
+	c t65
 codify < t4 > t66 | codify < t11 > t68 | codify < t3
+	c t66
+	c t68
 
 
 h | codify | codify < t3 > t69
+	c t69
 h -b | codify | codify < t3 > t70
+	c t70
 h -b | codify t4 | codify < t3 > t71
+	c t71
 h | codify t4 | codify < t3 > t72
+	c t72
+
 
 h > t73 | codify | codify < t3 > t79
+	c t73
+	c t79
 h < t5 | codify | codify < t3 > t80
+	c t80
 h | codify > t76 | codify < t3 > t81
+	c t76
+	c t81
 h | codify < t6 | codify < t3 > t82
+	c t82
 h > t74 | codify > t77 | codify < t3 > t83
+	c t74
+	c t77
+	c t83
 h > t75 | codify < t1 | codify < t3 > t84
+	c t75
+	c t84
 h < t2 | codify > t78 | codify < t3 > t85
+	c t78
+	c t85
 h < t3 | codify < t4 | codify < t3 > t86
+	c t86
+
 
 codify < t4 > t87 | codify | codify < t3 > t93
+	c t87
+	c t93
 codify < t4 > t88 | codify > t91 | codify < t3 > t94
+	c t88
+	c t91
+	c t94
 codify < t4 > t89 | codify < t11 | codify < t3 > t95
+	c t89
+	c t95
 codify < t4 > t90 | codify < t11 > t92 | codify < t3 > t96
+	c t90
+	c t92
+	c t96
+
+codify t4 | codify | codify | codify
