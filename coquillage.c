@@ -40,9 +40,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <fcntl.h>
-/* headers liés développés dans le cadre de ce BE */
-#include "process_environment.h"
-
 
 /* constantes utiles */
 #define BUFFERSIZE 512	/* contient le nombre maximum de caractères entrés par l'utilisateur */
@@ -55,14 +52,13 @@ void restore_stdout( int sortie_std );
 void mask_stdin( const char* nom_fic, int* entree_std );
 void restore_stdin( int entree_std );
 int read_and_move_forward( char** string, char* buffer );
-int forkNexec( char * commande, char * argument );
-int creationPipe( int fp[2], int * copieEcriture, int * copieEcriturePipe );
-int recuperationPipe( int fp[2], int * copieLecture, int * copieLecturePipe );
-int fermerPipe( int * es, int * pipe );
+int forkNexec( char* commande, char* argument );
+int creationPipe( int fp[2], int* copieEcriture, int* copieEcriturePipe );
+int recuperationPipe( int fp[2], int* copieLecture, int* copieLecturePipe );
+int fermerPipe( int* es, int* pipe );
 
-int main(int argc, char **argv)
+int main( int argc, char** argv )
 {
-	
 	/* VARIABLES */
 	
 	int nbCarLus = 0;							/* permet de connaitre le nombre de caractères lus */
@@ -91,8 +87,6 @@ int main(int argc, char **argv)
 	
 	
 	/* TRAITEMENT */
-	
-	
 	
 	/* premier affichage lorsqu'on ouvre le mini-shell */
 	printf("Bienvenue sur le coquillage ! :D\n");

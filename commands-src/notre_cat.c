@@ -1,5 +1,5 @@
 /*
- * lire.c
+ * notre_cat.c
  * 
  * Copyright 2014 Loup <loup@Vroum>
  * 
