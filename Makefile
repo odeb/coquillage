@@ -4,7 +4,7 @@ EXEC = coquillage
 CXXFLAGS = -Wall -Werror -std=c99
 LDFLAGS =
 
-OBJ = coquillage.o
+OBJ = coquillage.o process_management.o
 
 all: coquillage commands
 

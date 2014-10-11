@@ -34,28 +34,15 @@
 
 /* bibliothèques standards */
 #include <stdio.h>
-#include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <fcntl.h>
+/* bibliothèque pour gérer l'ouverture/fermeture d'entrée/sortie standard et de pipe,
+ * ainsi que le fork et exécution de processus */
+#include "process_management.h"
 
 /* constantes utiles */
 #define BUFFERSIZE 512	/* contient le nombre maximum de caractères entrés par l'utilisateur */
-#define PMODE = 0777;	/* permet d'affecter des droits aux fichiers créés */
 
-
-// signature des fonctions
-void mask_stdout( const char* nom_fic, int* sortie_std );
-void restore_stdout( int sortie_std );
-void mask_stdin( const char* nom_fic, int* entree_std );
-void restore_stdin( int entree_std );
-int read_and_move_forward( char** string, char* buffer );
-int forkNexec( char* commande, char* argument );
-int creationPipe( int fp[2], int* copieEcriture, int* copieEcriturePipe );
-int recuperationPipe( int fp[2], int* copieLecture, int* copieLecturePipe );
-int fermerPipe( int* es, int* pipe );
 
 int main( int argc, char** argv )
 {
@@ -66,13 +53,13 @@ int main( int argc, char** argv )
 	int sortie_std = 1;							/* initialisation de la sortie standard à 1 (écran) */
 	int entree_std = 0;							/* initialisation de l'entrée standard à 0 (clavier) */
 	char* pointer;								/* pointeur sur le tampon afin de travailler avec par la suite */
-    char mot[512];								/* récupère le "mot" (commande, argument, ">", "<", "|", nom_fic) qui va être analysé */
-    char commande[512];							/* récupère la commande (nom du binaire à exécuter) analysée */
-    char argument[512];							/* récupère l'argument de la commande analysée */
+    char mot[BUFFERSIZE];						/* récupère le "mot" (commande, argument, ">", "<", "|", nom_fic) qui va être analysé */
+    char commande[BUFFERSIZE];					/* récupère la commande (nom du binaire à exécuter) analysée */
+    char argument[BUFFERSIZE];					/* récupère l'argument de la commande analysée */
     int redirection_sortie;						/* prévient l'analyseur qu'au prochain "mot" il faudra traiter une redirection de la sortie de la "commande" vers le fichier "mot" */
-	int redirection_entree;						/* prévient l'analyseur qu'au prochain "mot" il faudra traiter une redirection de l'entrée de la "commande" vers le fichier "mot" */
+	int redirection_entree;						/* prévient l'analyseur qu'au prochain "mot" il faudra traiter une redirection de l'entrée de la "commande" depuis le fichier "mot" */
 	int redirection_sortie_entree;				/* prévient l'analyseur qu'au prochain "mot" il faudra traiter une redirection de la sortie de la "commande" précédente vers le prochain "mot" (prochaine commande) */
-	int faire_la_redirection;					// prévient l'analyseur qu'une fois qu'il a détecté un "|", alors à partir de ce moment il faudra traiter différement l'ajout de la commande à la structure, en particulier son entrée qui ne sera plus la standard
+	int faire_la_redirection;					/* prévient l'analyseur qu'au prochain "mot" il faudra traiter une redirection de l'entrée de la "commande" depuis le pipe de lecture */
 	int attention_redirection_sortie;			/* prévient l'analyseur qu'il y a eu un ">" avant un "|" et qu'il devra prendre en compte en priorité le ">" */
 	int	attention_redirection_entree;			/* prévient l'analyseur qu'il y a eu un "|" avant un "<" et qu'il devra prendre en compte en priorité le "<" */
 	int restaurerSortie;						/* prévient l'analyseur qu'il faut restaurer la sortie standard */
@@ -477,138 +464,6 @@ int main( int argc, char** argv )
 			}
 		}
 	}
-	return 0;
-}
-
-void mask_stdout( const char* nom_fic, int* sortie_std )
-{
-	// on transforme un fichier en sortie standard, le temps de l'execution
-	*sortie_std = dup( 1 );
-	
-	close(1);
-	
-	if( creat( nom_fic, 0777 ) < 0 ) 
-	{
-		fprintf( stderr, "erreur dans la fonction mask_stdout\n" );
-		exit( 1 );
-	}
-}
-
-void restore_stdout( int sortie_std )
-{
-	// on ferme le ficher
-	close( 1 );
-	
-	dup( sortie_std );	// il trouve tout seul 1 qui est le premier dispo ?
-	close( sortie_std );
-}
-
-int read_and_move_forward( char** string, char* buffer )
-{
-    const char* string_start = *string;
-    while( **string != ' ' && **string != '\0' && **string != '\n' )
-    {
-        *buffer = **string;
-        buffer++;
-        (*string)++;
-    }
-    
-    *buffer = '\0';
-    if( **string == ' ' )
-    {
-        (*string)++;
-    }
-    
-    return *string - string_start;
-}
-
-void mask_stdin( const char* nom_fic, int* entree_std )
-{
-	// on transforme un fichier en entree standard, le temps de l'execution
-	*entree_std = dup( 0 );
-	
-	close(0);
-	
-	if( open( nom_fic, 0 ) < 0 ) 
-	{
-		fprintf( stderr, "erreur dans la fonction mask_stdin\n" );
-		exit(1);
-	}
-}
-
-void restore_stdin( int entree_std )
-{
-	// on ferme le ficher
-	close( 0 );
-	
-	dup( entree_std );	// il trouve tout seul 1 qui est le premier dispo ?
-	close( entree_std );
-}
-
-int forkNexec( char* commande, char* argument )
-{
-	int statusFils;								// contient le status du fils pour le wait() du père
-	int processus;								// récupère le PID du processus une fois le fork() exécuté
-	int execlExit;              				// récupère la valeur de sortie d'execl
-	
-	// fprintf( stderr, "Execution de la commande '%s' avec l'argument '%s'.\n", commande, argument );
-	
-	// On se divise !!
-	processus = fork();
-	if( processus == -1 )
-	{
-		fprintf( stderr, "Ouille... grosse erreur, je n'ai pas réussi à créer le processus fils !\n" );
-		return 1;
-	}
-	// Si je suis le fils
-	if( processus == 0 )
-	{
-		// j'exécute la commande demandée
-		if ( strcmp( argument, "" ) == 0 )
-			execlExit= execl( commande, commande, NULL );
-		else
-		{
-			//fprintf( stderr, "TITAN DEBUG: '%s'\n", argument );
-			execlExit= execl( commande, commande, argument, NULL );
-		}
-		// je sors en erreur si execl à un problème d'exécution
-		if( execlExit < 0 ) fprintf( stderr, "Erreur d'exécution, la commande est peut-être inconnue !\n" );
-		exit( 0 );
-	}		
-	// Sinon, je suis le père
-	else
-	{
-		// Et j'attends la fin de mes fils
-		processus = wait( &statusFils );
-	}
-	return 0;
-}
-
-int creationPipe( int fp[2], int* copieEcriture, int* copieEcriturePipe )
-{
-	pipe( fp );
-	*copieEcriture = dup( 1 );
-	close( 1 );
-	*copieEcriturePipe = dup( fp[1] );
-	close( fp[1] );
-	
-	return 0;
-}
-
-int recuperationPipe( int fp[2], int* copieLecture, int* copieLecturePipe )
-{
-	*copieLecture = dup( 0 );
-	close( 0 );
-	*copieLecturePipe = dup( fp[0] );
-	close( fp[0] );
-	return 0;
-}
-
-int fermerPipe( int* es, int* pipe )
-{
-	close( *pipe );
-	dup( *es );
-	close( *es );
 	return 0;
 }
 
