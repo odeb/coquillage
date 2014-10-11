@@ -41,7 +41,7 @@
 #include "process_management.h"
 
 /* constantes utiles */
-#define BUFFERSIZE 512	/* contient le nombre maximum de caractères entrés par l'utilisateur */
+#define BUFFERSIZE 514	// contient le nombre maximum de caractères entrés par l'utilisateur (entrée utilisateur + retour chariot + caractère déclancheur d'arrêt éventuel
 
 
 int main( int argc, char** argv )
@@ -69,7 +69,7 @@ int main( int argc, char** argv )
 	int copieEcriturePipe;						/* contient la copie temporaire du côté écriture du pipe */
     int copieLecture;							/* contient la copie temporaire de l'entrée standard */
     int copieLecturePipe;						/* contient la copie temporaire du côté lecture du pipe */
-    int analyseEnCours; 						/* prévient l'analyseur d'arrêter l'analyse de la ligne de commandes */
+    int analyseEnCours; 						/* prévient l'analyseur d'arrêter l'analyse de la l'entrée utilisateur */
     int argumentEnCours;						/* prévient l'analyseur que l'on analyse un argument */
 	
 	
@@ -79,7 +79,7 @@ int main( int argc, char** argv )
 	printf("Bienvenue sur le coquillage ! :D\n");
 	printf("Vous pouvez appeler des exécutables locaux avec un argument, et utiliser les symboles \"<\",\">\" et \"|\".\n");
 	
-	/* Boucle d'attente des commandes */
+	/* Boucle d'attente des entrées utilisateur */
 	while (nbCarLus >= 0)
 	{
 		
@@ -91,6 +91,8 @@ int main( int argc, char** argv )
 	
 		/* Les caractères lus sont stockés dans tampon */
 		nbCarLus=read(0,tampon,BUFFERSIZE);
+		//fprintf( stderr, "nbCarLus '%d'.\n", nbCarLus);
+
 		/* On sort en erreur si read à un problème de lecture */
 		if(nbCarLus<0) 
 		{
@@ -107,19 +109,23 @@ int main( int argc, char** argv )
 		// Test d'affichage du nombre de caractères lus et du tampon
 		//fprintf( stderr, "J'ai lu %d caractères, et la chaine est '%s'.\n",nbCarLus-1,tampon);
 
-		/* On traite le cas où le tampon est vide, pas de commande, alors on execute rien ! Et on recommence la boucle pour rendre le prompt. */
-		if(!strcmp(tampon,""));
+		/* On traite le cas où le tampon est trop rempli et qu'il risque de mal exécuter l'entrée utilisateur tronquée */
+		if( nbCarLus == BUFFERSIZE )
+		{
+			fprintf( stderr, "La commande est ignorée car elle dépasse %d caractères.\n", BUFFERSIZE-2 );
+		}
+		/* On traite le cas où le tampon est vide, pas d'entrée utilisateur, alors on n'execute rien ! Et on recommence la boucle pour rendre le prompt. */
+		else if(!strcmp(tampon,""));
 		/* Sinon, on gère la demande de fermeture du shell coquillage avec la commande exit */
 		else if(!strcmp(tampon,"exit"))
 		{
 			printf("Fermeture de coquillage... Au revoir !\n");
 			exit(0);
 		}
-		/* Et sinon, on exécute la commande demandée ! */
+		/* Et sinon, on traite l'entrée utilisateur demandée ! */
 		else
 		{
-
-			/* ANALYSE DE LA LIGNE DE COMMANDE ENTRÉE PAR L'UTILISATEUR */
+			/* ANALYSE DE LA LIGNE DE COMMANDES ENTRÉE PAR L'UTILISATEUR */
 			
 			/* on initialise tous les avertisseurs à zéro, car on n'a encore rien fait */
 			/* ces avertisseurs serviront à se souvenir que des redirections ont été demandées au fur et à mesure de la lecture */
@@ -135,7 +141,7 @@ int main( int argc, char** argv )
 			restaurerEntree = 0;
 			fp[0] = 0;
 			fp[1] = 0;
-			// on initialise les arguments à une chaine vide, au cas où il n'y en aurait pas du tout
+			/* on initialise les arguments à une chaine vide, au cas où il n'y en aurait pas du tout */
 			if (strcpy( argument, "" )==NULL) exit(1);
 			
 			
@@ -403,7 +409,7 @@ int main( int argc, char** argv )
 				else
 				{
 					analyseEnCours = 1;
-					// on ne passe par ici que dans le cas où la ligne de commandes ne contenait qu'une commande avec ou sans argument avec ou sans redirection de sortie et/ou entrée
+					// on ne passe par ici que dans le cas où la l'entrée utilisateur ne contenait qu'une commande avec ou sans argument avec ou sans redirection de sortie et/ou entrée
 					if( faire_la_redirection == 0)
 					{
 						// fork() puis execution de la commande avec son argument
@@ -420,7 +426,7 @@ int main( int argc, char** argv )
 							restaurerEntree = 0;
 						}
 					}
-					// sinon on passe par là, car il y a eu un pipe avant la commande finale de la ligne de commandes.
+					// sinon on passe par là, car il y a eu un pipe avant la commande finale de l'entrée utilisateur.
 					else
 					{
 						if ( attention_redirection_entree == 0 )
@@ -466,6 +472,3 @@ int main( int argc, char** argv )
 	}
 	return 0;
 }
-
-
-
