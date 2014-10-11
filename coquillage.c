@@ -91,7 +91,6 @@ int main( int argc, char** argv )
 	
 		/* Les caractères lus sont stockés dans tampon */
 		nbCarLus = read( 0, tampon, BUFFERSIZE );
-		//fprintf( stderr, "nbCarLus '%d'.\n", nbCarLus );
 
 		/* On sort en erreur si read à un problème de lecture */
 		if( nbCarLus < 0 ) 
@@ -104,10 +103,6 @@ int main( int argc, char** argv )
 		
 		/* Ici on remplace le retour chariot à la fin de la chaine de caractère par une fin de chaine de caractère */
 		tampon[nbCarLus-1] = '\0';
-		
-		// DEBUG
-		// Test d'affichage du nombre de caractères lus et du tampon
-		//fprintf( stderr, "J'ai lu %d caractères, et la chaine est '%s'.\n",nbCarLus-1,tampon);
 
 		/* On traite le cas où le tampon est trop rempli et qu'il risque de mal exécuter l'entrée utilisateur tronquée */
 		if( nbCarLus == BUFFERSIZE )
@@ -260,7 +255,7 @@ int main( int argc, char** argv )
 								{	
 									if( creationPipe( fp, &copieEcriture, &copieEcriturePipe ) )
 									{
-										fprintf( stderr, "Erreur ??? de création du pipe.\n" );
+										fprintf( stderr, "Erreur de création du pipe.\n" );
 										exit( 1 );
 									}
 

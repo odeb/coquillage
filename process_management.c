@@ -133,12 +133,11 @@ int forkNexec( char* commande, char* argument )
 		if ( strcmp( argument, "" ) == 0 )
 			execlExit= execl( commande, commande, NULL );
 		else
-		{
-			//fprintf( stderr, "TITAN DEBUG: '%s'\n", argument );
 			execlExit= execl( commande, commande, argument, NULL );
-		}
+			
 		// je sors en erreur si execl à un problème d'exécution
 		if( execlExit < 0 ) fprintf( stderr, "Erreur d'exécution, la commande est peut-être inconnue !\n" );
+		// j'ai fini alors je m'arrête
 		exit( 0 );
 	}		
 	// Sinon, je suis le père
