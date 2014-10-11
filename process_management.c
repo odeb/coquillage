@@ -4,8 +4,17 @@ void mask_stdout( const char* nom_fic, int* sortie_std )
 {
 	// on transforme un fichier en sortie standard, le temps de l'execution
 	*sortie_std = dup( 1 );
+	if( *sortie_std == -1 )
+	{
+		fprintf( stderr, "erreur dans la fonction mask_stdout\n" );
+		exit( 1 );
+	}
 	
-	close(1);
+	if( close( 1 ) != 0 )
+	{
+		fprintf( stderr, "erreur dans la fonction mask_stdout\n" );
+		exit( 1 );
+	}
 	
 	if( creat( nom_fic, PMODE ) < 0 ) 
 	{
@@ -17,10 +26,24 @@ void mask_stdout( const char* nom_fic, int* sortie_std )
 void restore_stdout( int sortie_std )
 {
 	// on ferme le ficher
-	close( 1 );
+	if( close( 1 ) != 0 )
+	{
+		fprintf( stderr, "erreur dans la fonction restore_stdout\n" );
+		exit( 1 );
+	}
 	
-	dup( sortie_std );	// il trouve tout seul 1 qui est le premier dispo ?
-	close( sortie_std );
+	// il trouve tout seul 1 qui est le premier dispo
+	if( dup( sortie_std ) == -1 )
+	{
+		fprintf( stderr, "erreur dans la fonction restore_stdout\n" );
+		exit( 1 );		
+	}
+	
+	if( close( sortie_std ) != 0 )
+	{
+		fprintf( stderr, "erreur dans la fonction restore_stdout\n" );
+		exit( 1 );
+	}
 }
 
 int read_and_move_forward( char** string, char* buffer )
@@ -46,8 +69,17 @@ void mask_stdin( const char* nom_fic, int* entree_std )
 {
 	// on transforme un fichier en entree standard, le temps de l'execution
 	*entree_std = dup( 0 );
+	if( *entree_std == -1 )
+	{
+		fprintf( stderr, "erreur dans la fonction mask_stdin\n" );
+		exit( 1 );
+	}
 	
-	close(0);
+	if( close(0) != 0 )
+	{
+		fprintf( stderr, "erreur dans la fonction mask_stdin\n" );
+		exit( 1 );
+	}
 	
 	if( open( nom_fic, 0 ) < 0 ) 
 	{
@@ -59,10 +91,24 @@ void mask_stdin( const char* nom_fic, int* entree_std )
 void restore_stdin( int entree_std )
 {
 	// on ferme le ficher
-	close( 0 );
+	if( close( 0 ) != 0 )
+	{
+		fprintf( stderr, "erreur dans la fonction restore_stdin\n" );
+		exit( 1 );
+	}
 	
-	dup( entree_std );	// il trouve tout seul 1 qui est le premier dispo ?
-	close( entree_std );
+	// il trouve tout seul 1 qui est le premier dispo
+	if( dup( entree_std ) == -1 )
+	{
+		fprintf( stderr, "erreur dans la fonction restore_stdin\n" );
+		exit( 1 );		
+	}
+	
+	if( close( entree_std ) != 0 )
+	{
+		fprintf( stderr, "erreur dans la fonction restore_stdin\n" );
+		exit( 1 );
+	}
 }
 
 int forkNexec( char* commande, char* argument )
@@ -106,11 +152,17 @@ int forkNexec( char* commande, char* argument )
 
 int creationPipe( int fp[2], int* copieEcriture, int* copieEcriturePipe )
 {
-	pipe( fp );
+	if( pipe( fp ) != 0 ) return 1;
+	
 	*copieEcriture = dup( 1 );
-	close( 1 );
+	if( *copieEcriture == -1 ) return 1;
+	
+	if( close( 1 ) != 0 ) return 1;
+	
 	*copieEcriturePipe = dup( fp[1] );
-	close( fp[1] );
+	if( *copieEcriturePipe == -1 ) return 1;
+	
+	if( close( fp[1] ) != 0 ) return 1;
 	
 	return 0;
 }
@@ -118,16 +170,25 @@ int creationPipe( int fp[2], int* copieEcriture, int* copieEcriturePipe )
 int recuperationPipe( int fp[2], int* copieLecture, int* copieLecturePipe )
 {
 	*copieLecture = dup( 0 );
-	close( 0 );
+	if( *copieLecture == -1 ) return 1;
+	
+	if( close( 0 ) != 0 ) return 1;
+	
 	*copieLecturePipe = dup( fp[0] );
-	close( fp[0] );
+	if( *copieLecturePipe == -1 ) return 1;
+	
+	if( close( fp[0] ) != 0 ) return 1;
+	
 	return 0;
 }
 
 int fermerPipe( int* es, int* pipe )
 {
-	close( *pipe );
-	dup( *es );
-	close( *es );
+	if( close( *pipe ) != 0 ) return 1;
+	
+	if( dup( *es ) == -1 ) return 1;
+	
+	if( close( *es ) != 0 ) return 1;
+	
 	return 0;
 }

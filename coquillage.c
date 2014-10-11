@@ -76,34 +76,34 @@ int main( int argc, char** argv )
 	/* TRAITEMENT */
 	
 	/* premier affichage lorsqu'on ouvre le mini-shell */
-	printf("Bienvenue sur le coquillage ! :D\n");
-	printf("Vous pouvez appeler des exécutables locaux avec un argument, et utiliser les symboles \"<\",\">\" et \"|\".\n");
+	printf( "Bienvenue sur le coquillage ! :D\n" );
+	printf( "Vous pouvez appeler des exécutables locaux avec un argument, et utiliser les symboles \"<\",\">\" et \"|\".\n" );
 	
 	/* Boucle d'attente des entrées utilisateur */
-	while (nbCarLus >= 0)
+	while ( nbCarLus >= 0 )
 	{
 		
 		/* On débuffurise stdout afin de pouvoir afficher immédiatement la ligne d'un printf qui ne contient pas un retour chariot */
-		setbuf(stdout, NULL);
+		setbuf( stdout, NULL );
 		/* Affichage d'un prompt */
-		printf("Coquillage $ ");
+		printf( "Coquillage $ " );
 	
 	
 		/* Les caractères lus sont stockés dans tampon */
-		nbCarLus=read(0,tampon,BUFFERSIZE);
-		//fprintf( stderr, "nbCarLus '%d'.\n", nbCarLus);
+		nbCarLus = read( 0, tampon, BUFFERSIZE );
+		//fprintf( stderr, "nbCarLus '%d'.\n", nbCarLus );
 
 		/* On sort en erreur si read à un problème de lecture */
-		if(nbCarLus<0) 
+		if( nbCarLus < 0 ) 
 		{
-			fprintf( stderr, "Erreur de lecture de l'entrée utilisateur.\n");
-			exit(1);
+			fprintf( stderr, "Erreur de lecture de l'entrée utilisateur.\n" );
+			exit( 1 );
 		}
 		/* on copie le pointeur vers le tampon afin de ne pas "décaler" le pointeur original */
 		pointer = tampon;
 		
 		/* Ici on remplace le retour chariot à la fin de la chaine de caractère par une fin de chaine de caractère */
-		tampon[nbCarLus-1]='\0';
+		tampon[nbCarLus-1] = '\0';
 		
 		// DEBUG
 		// Test d'affichage du nombre de caractères lus et du tampon
@@ -115,12 +115,12 @@ int main( int argc, char** argv )
 			fprintf( stderr, "La commande est ignorée car elle dépasse %d caractères.\n", BUFFERSIZE-2 );
 		}
 		/* On traite le cas où le tampon est vide, pas d'entrée utilisateur, alors on n'execute rien ! Et on recommence la boucle pour rendre le prompt. */
-		else if(!strcmp(tampon,""));
+		else if( ! strcmp( tampon, "" ) );
 		/* Sinon, on gère la demande de fermeture du shell coquillage avec la commande exit */
-		else if(!strcmp(tampon,"exit"))
+		else if( ! strcmp( tampon, "exit" ) )
 		{
-			printf("Fermeture de coquillage... Au revoir !\n");
-			exit(0);
+			printf( "Fermeture de coquillage... Au revoir !\n" );
+			exit( 0 );
 		}
 		/* Et sinon, on traite l'entrée utilisateur demandée ! */
 		else
@@ -142,7 +142,11 @@ int main( int argc, char** argv )
 			fp[0] = 0;
 			fp[1] = 0;
 			/* on initialise les arguments à une chaine vide, au cas où il n'y en aurait pas du tout */
-			if (strcpy( argument, "" )==NULL) exit(1);
+			if( strcpy( argument, "" ) == NULL )
+			{
+				fprintf( stderr, "Erreur d'initialisation d'argument à une chaîne vide.\n" );
+				exit( 1 );
+			}
 			
 			
 			/* La boucle suivante constitue le coeur de ce mini-shell.
@@ -159,7 +163,7 @@ int main( int argc, char** argv )
 				{
 					/* cas où l'utilisateur demande une redirection de la sortie vers un fichier :
 					 * on modifie les avertisseurs qui permettront d'agir en fonction au prochain mot */
-					if( !strcmp( mot, ">" ) )
+					if( ! strcmp( mot, ">" ) )
 					{
 						/* on retient que le prochain mot sera le fichier vers où rediriger */
 						redirection_sortie = 1;
@@ -170,7 +174,7 @@ int main( int argc, char** argv )
 					
 					/* cas où l'utilisateur demande une redirection de l'entrée vers un fichier :
 					 * on modifie les avertisseurs qui permettront d'agir en fonction au prochain mot */
-					else if ( !strcmp( mot, "<" ) )
+					else if ( ! strcmp( mot, "<" ) )
 					{
 						/* on retient que le prochain mot sera le fichier vers où rediriger */
 						redirection_entree = 1;
@@ -181,7 +185,7 @@ int main( int argc, char** argv )
 					
 					/* cas où l'utilisateur demande une redirection de la sortie d'une commande vers l'entrée d'une autre :
 					 * on modifie les avertisseurs qui permettront d'agir en fonction au prochain mot */
-					else if( !strcmp( mot, "|" ) )
+					else if( ! strcmp( mot, "|" ) )
 					{
 						/* on retient que le prochain mot sera la deuxième commande de la paire qui s'échange des résultats */
 						redirection_sortie_entree = 1;
@@ -200,7 +204,11 @@ int main( int argc, char** argv )
 						if( argumentEnCours == 1 )
 						{
 							/* On copie le mot dans une variable intermédiaire, pour l'utiliser lors de l'exécution de la commande. */
-							strcpy( argument, mot );
+							if( strcpy( argument, mot ) == NULL )
+							{
+								fprintf( stderr, "Erreur de copie du mot dans argument.\n" );
+								exit( 1 );
+							}
 						}
 						
 						/* Si le dernier mot lu était ">", le mot suivant est le nom du fichier dans lequel rediriger la sortie.
@@ -250,10 +258,18 @@ int main( int argc, char** argv )
 								// STOP
 								if( attention_redirection_sortie == 0 )
 								{	
-									creationPipe( fp, &copieEcriture, &copieEcriturePipe );
+									if( creationPipe( fp, &copieEcriture, &copieEcriturePipe ) )
+									{
+										fprintf( stderr, "Erreur ??? de création du pipe.\n" );
+										exit( 1 );
+									}
 
 									// fork() puis execution de la commande avec son argument
-									forkNexec( commande, argument );
+									if( forkNexec( commande, argument ) )
+									{
+										fprintf( stderr, "Erreur de fork et exécution.\n" );
+										exit( 1 );
+									}
 									
 									if ( restaurerSortie == 1 )
 									{
@@ -266,14 +282,22 @@ int main( int argc, char** argv )
 											restaurerEntree = 0;
 									}
 
-									fermerPipe( &copieEcriture, &copieEcriturePipe );
+									if( fermerPipe( &copieEcriture, &copieEcriturePipe ) )
+									{
+										fprintf( stderr, "Erreur de fermeture du pipe.\n" );
+										exit( 1 );
+									}
 								}
 								else
 								{
-									fprintf( stderr, "DEBUG: Attention le pipe ne devrait pas prendre le dessus sur '>'.\n");
+									fprintf( stderr, "DEBUG: Attention le pipe ne devrait pas prendre le dessus sur '>'.\n" );
 			
 									// fork() puis execution de la commande avec son argument
-									forkNexec( commande, argument );
+									if( forkNexec( commande, argument ) )
+									{
+										fprintf( stderr, "Erreur de fork et exécution.\n" );
+										exit( 1 );
+									}
 																					
 									if ( restaurerSortie == 1 )
 									{
@@ -287,8 +311,16 @@ int main( int argc, char** argv )
 									}
 									
 									// même si '>' prend le dessus sur "|" il ne faut pas oublié de créer quand même le pipe !
-									creationPipe( fp, &copieEcriture, &copieEcriturePipe );
-									fermerPipe( &copieEcriture, &copieEcriturePipe );
+									if( creationPipe( fp, &copieEcriture, &copieEcriturePipe ) )
+									{
+										fprintf( stderr, "Erreur de création du pipe.\n" );
+										exit( 1 );
+									}
+									if( fermerPipe( &copieEcriture, &copieEcriturePipe ) )
+									{
+										fprintf( stderr, "Erreur de fermeture du pipe.\n" );
+										exit( 1 );
+									}
 								}
 							}
 							else
@@ -296,12 +328,24 @@ int main( int argc, char** argv )
 								// s'il n'y a ni une redirection de sortie ni une redirection d'entrée
 								if( attention_redirection_sortie == 0 && attention_redirection_entree == 0 )
 								{
-									recuperationPipe( fp, &copieLecture, &copieLecturePipe );
+									if( recuperationPipe( fp, &copieLecture, &copieLecturePipe ) )
+									{
+										fprintf( stderr, "Erreur de récupération du pipe.\n" );
+										exit( 1 );
+									}
 								
-									creationPipe( fp, &copieEcriture, &copieEcriturePipe );
+									if( creationPipe( fp, &copieEcriture, &copieEcriturePipe ) )
+									{
+										fprintf( stderr, "Erreur de création du pipe.\n" );
+										exit( 1 );
+									}
 																		
 									// fork() puis execution de la commande avec son argument
-									forkNexec( commande, argument );
+									if( forkNexec( commande, argument ) )
+									{
+										fprintf( stderr, "Erreur de fork et exécution.\n" );
+										exit( 1 );
+									}
 																										
 									if ( restaurerSortie == 1 )
 									{
@@ -314,19 +358,34 @@ int main( int argc, char** argv )
 										restaurerEntree = 0;
 									}
 									
-									fermerPipe( &copieLecture, &copieLecturePipe );
-
-									fermerPipe( &copieEcriture, &copieEcriturePipe );		
+									if( fermerPipe( &copieLecture, &copieLecturePipe ) )
+									{
+										fprintf( stderr, "Erreur de fermeture du pipe.\n" );
+										exit( 1 );
+									}
+									if( fermerPipe( &copieEcriture, &copieEcriturePipe ) )
+									{
+										fprintf( stderr, "Erreur de fermeture du pipe.\n" );
+										exit( 1 );
+									}		
 								}
 								// s'il n'y a qu'une redirection de sortie
 								else if( attention_redirection_sortie == 1 && attention_redirection_entree == 0 )
 								{
-									fprintf( stderr, "DEBUG: Attention le pipe ne devrait pas prendre le dessus sur '>'.\n");
+									fprintf( stderr, "DEBUG: Attention le pipe ne devrait pas prendre le dessus sur '>'.\n" );
 									
-									recuperationPipe( fp, &copieLecture, &copieLecturePipe );
+									if( recuperationPipe( fp, &copieLecture, &copieLecturePipe ) )
+									{
+										fprintf( stderr, "Erreur de récupération du pipe.\n" );
+										exit( 1 );
+									}
 									
 									// fork() puis execution de la commande avec son argument
-									forkNexec( commande, argument );
+									if( forkNexec( commande, argument ) )
+									{
+										fprintf( stderr, "Erreur de fork et exécution.\n" );
+										exit( 1 );
+									}
 																			
 									if ( restaurerSortie == 1 )
 									{
@@ -339,11 +398,23 @@ int main( int argc, char** argv )
 										restaurerEntree = 0;
 									}
 									
-									fermerPipe( &copieLecture, &copieLecturePipe );
+									if( fermerPipe( &copieLecture, &copieLecturePipe ) )
+									{
+										fprintf( stderr, "Erreur de fermeture du pipe.\n" );
+										exit( 1 );
+									}
 									
 									// même si '>' prend le dessus sur "|" il ne faut pas oublié de créer quand même le pipe !
-									creationPipe( fp, &copieEcriture, &copieEcriturePipe );
-									fermerPipe( &copieEcriture, &copieEcriturePipe );
+									if( creationPipe( fp, &copieEcriture, &copieEcriturePipe ) )
+									{
+										fprintf( stderr, "Erreur de création du pipe.\n" );
+										exit( 1 );
+									}
+									if( fermerPipe( &copieEcriture, &copieEcriturePipe ) )
+									{
+										fprintf( stderr, "Erreur de fermeture du pipe.\n" );
+										exit( 1 );
+									}
 									
 								}
 								// s'il n'y a qu'une redirection d'entrée
@@ -351,10 +422,18 @@ int main( int argc, char** argv )
 								{
 									fprintf( stderr, "DEBUG: Attention le pipe ne devrait pas prendre le dessus sur '<'.\n");
 									
-									creationPipe( fp, &copieEcriture, &copieEcriturePipe );
+									if( creationPipe( fp, &copieEcriture, &copieEcriturePipe ) )
+									{
+										fprintf( stderr, "Erreur de création du pipe.\n" );
+										exit( 1 );
+									}
 									
 									// fork() puis execution de la commande avec son argument
-									forkNexec( commande, argument );
+									if( forkNexec( commande, argument ) )
+									{
+										fprintf( stderr, "Erreur de fork et exécution.\n" );
+										exit( 1 );
+									}
 									
 									if ( restaurerSortie == 1 )
 									{
@@ -367,15 +446,23 @@ int main( int argc, char** argv )
 										restaurerEntree = 0;
 									}
 									
-									fermerPipe( &copieEcriture, &copieEcriturePipe );
+									if( fermerPipe( &copieEcriture, &copieEcriturePipe ) )
+									{
+										fprintf( stderr, "Erreur de fermeture du pipe.\n" );
+										exit( 1 );
+									}
 								}
 								// s'il y a une redirection de sortie et une redirection d'entrée
 								else if(attention_redirection_sortie == 1 && attention_redirection_entree == 1)
 								{
-									fprintf( stderr, "DEBUG: Attention le pipe ne devrait prendre le dessus ni sur '>' ni sur '<'.\n");
+									fprintf( stderr, "DEBUG: Attention le pipe ne devrait prendre le dessus ni sur '>' ni sur '<'.\n" );
 									
 									// fork() puis execution de la commande avec son argument
-									forkNexec( commande, argument );
+									if( forkNexec( commande, argument ) )
+									{
+										fprintf( stderr, "Erreur de fork et exécution.\n" );
+										exit( 1 );
+									}
 																			
 									if ( restaurerSortie == 1 )
 									{
@@ -389,19 +476,39 @@ int main( int argc, char** argv )
 									}
 									
 									// même si '>' prend le dessus sur "|" il ne faut pas oublié de créer quand même le pipe !
-									creationPipe( fp, &copieEcriture, &copieEcriturePipe );
-									fermerPipe( &copieEcriture, &copieEcriturePipe );
+									if( creationPipe( fp, &copieEcriture, &copieEcriturePipe ) )
+									{
+										fprintf( stderr, "Erreur de création du pipe.\n" );
+										exit( 1 );
+									}
+									if( fermerPipe( &copieEcriture, &copieEcriturePipe ) )
+									{
+										fprintf( stderr, "Erreur de fermeture du pipe.\n" );
+										exit( 1 );
+									}
 								}
 							}
-							strcpy( argument, "" );
-							strcpy( commande, mot );
+							if( strcpy( argument, "" ) == NULL )
+							{
+								fprintf( stderr, "Erreur de ré-initialisation d'argument à une chaîne vide.\n" );
+								exit( 1 );
+							}
+							if( strcpy( commande, mot ) == NULL )
+							{
+								fprintf( stderr, "Erreur de copie du mot dans argument.\n" );
+								exit( 1 );
+							}
 							faire_la_redirection = 1;
 							attention_redirection_sortie = 0;
 							attention_redirection_entree = 0;
 						}
 						else
 						{
-							strcpy( commande, mot );
+							if( strcpy( commande, mot ) == NULL )
+							{
+								fprintf( stderr, "Erreur de copie du mot dans argument.\n" );
+								exit( 1 );
+							}
 						}
 						argumentEnCours = 1;
 					}					
@@ -410,10 +517,14 @@ int main( int argc, char** argv )
 				{
 					analyseEnCours = 1;
 					// on ne passe par ici que dans le cas où la l'entrée utilisateur ne contenait qu'une commande avec ou sans argument avec ou sans redirection de sortie et/ou entrée
-					if( faire_la_redirection == 0)
+					if( faire_la_redirection == 0 )
 					{
 						// fork() puis execution de la commande avec son argument
-						forkNexec( commande, argument );
+						if( forkNexec( commande, argument ) )
+						{
+							fprintf( stderr, "Erreur de fork et exécution.\n" );
+							exit( 1 );
+						}
 									
 						if ( restaurerSortie == 1 )
 						{
@@ -431,10 +542,18 @@ int main( int argc, char** argv )
 					{
 						if ( attention_redirection_entree == 0 )
 						{
-							recuperationPipe( fp, &copieLecture, &copieLecturePipe );
+							if( recuperationPipe( fp, &copieLecture, &copieLecturePipe ) )
+							{
+								fprintf( stderr, "Erreur de récupération du pipe.\n" );
+								exit( 1 );
+							}
 
 							// fork() puis execution de la commande avec son argument
-							forkNexec( commande, argument );
+							if( forkNexec( commande, argument ) )
+							{
+								fprintf( stderr, "Erreur de fork et exécution.\n" );
+								exit( 1 );
+							}
 																						
 							if ( restaurerSortie == 1 )
 							{
@@ -447,12 +566,20 @@ int main( int argc, char** argv )
 								restaurerEntree = 0;
 							}
 
-							fermerPipe( &copieLecture, &copieLecturePipe );						
+							if( fermerPipe( &copieLecture, &copieLecturePipe ) )
+							{
+								fprintf( stderr, "Erreur de fermeture du pipe.\n" );
+								exit( 1 );
+							}
 						}
 						else
 						{
 							// fork() puis execution de la commande avec son argument
-							forkNexec( commande, argument );
+							if( forkNexec( commande, argument ) )
+							{
+								fprintf( stderr, "Erreur de fork et exécution.\n" );
+								exit( 1 );
+							}
 							
 							if ( restaurerSortie == 1 )
 							{
