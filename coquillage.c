@@ -483,14 +483,14 @@ int main( int argc, char** argv )
 void mask_stdout( const char* nom_fic, int* sortie_std )
 {
 	// on transforme un fichier en sortie standard, le temps de l'execution
-	*sortie_std = dup(1);
+	*sortie_std = dup( 1 );
 	
 	close(1);
 	
 	if( creat( nom_fic, 0777 ) < 0 ) 
 	{
-		fprintf( stderr, "erreur dans la fonction mask_stdout\n");
-		exit(1);
+		fprintf( stderr, "erreur dans la fonction mask_stdout\n" );
+		exit( 1 );
 	}
 }
 
@@ -525,13 +525,13 @@ int read_and_move_forward( char** string, char* buffer )
 void mask_stdin( const char* nom_fic, int* entree_std )
 {
 	// on transforme un fichier en entree standard, le temps de l'execution
-	*entree_std = dup(0);
+	*entree_std = dup( 0 );
 	
 	close(0);
 	
 	if( open( nom_fic, 0 ) < 0 ) 
 	{
-		fprintf( stderr, "erreur dans la fonction mask_stdin\n");
+		fprintf( stderr, "erreur dans la fonction mask_stdin\n" );
 		exit(1);
 	}
 }
@@ -545,7 +545,7 @@ void restore_stdin( int entree_std )
 	close( entree_std );
 }
 
-int forkNexec( char * commande, char * argument )
+int forkNexec( char* commande, char* argument )
 {
 	int statusFils;								// contient le status du fils pour le wait() du père
 	int processus;								// récupère le PID du processus une fois le fork() exécuté
@@ -555,16 +555,16 @@ int forkNexec( char * commande, char * argument )
 	
 	// On se divise !!
 	processus = fork();
-	if(processus == -1)
+	if( processus == -1 )
 	{
 		fprintf( stderr, "Ouille... grosse erreur, je n'ai pas réussi à créer le processus fils !\n" );
 		return 1;
 	}
 	// Si je suis le fils
-	if(processus == 0)
+	if( processus == 0 )
 	{
 		// j'exécute la commande demandée
-		if ( strcmp(argument,"") == 0 )
+		if ( strcmp( argument, "" ) == 0 )
 			execlExit= execl( commande, commande, NULL );
 		else
 		{
@@ -579,12 +579,12 @@ int forkNexec( char * commande, char * argument )
 	else
 	{
 		// Et j'attends la fin de mes fils
-		processus=wait(&statusFils);
+		processus = wait( &statusFils );
 	}
 	return 0;
 }
 
-int creationPipe( int fp[2], int * copieEcriture, int * copieEcriturePipe )
+int creationPipe( int fp[2], int* copieEcriture, int* copieEcriturePipe )
 {
 	pipe( fp );
 	*copieEcriture = dup( 1 );
@@ -595,16 +595,16 @@ int creationPipe( int fp[2], int * copieEcriture, int * copieEcriturePipe )
 	return 0;
 }
 
-int recuperationPipe( int fp[2], int * copieLecture, int * copieLecturePipe )
+int recuperationPipe( int fp[2], int* copieLecture, int* copieLecturePipe )
 {
 	*copieLecture = dup( 0 );
 	close( 0 );
-	*copieLecturePipe = dup( fp[0]);
+	*copieLecturePipe = dup( fp[0] );
 	close( fp[0] );
 	return 0;
 }
 
-int fermerPipe( int * es, int * pipe )
+int fermerPipe( int* es, int* pipe )
 {
 	close( *pipe );
 	dup( *es );
