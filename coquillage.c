@@ -551,7 +551,7 @@ int forkNexec( char * commande, char * argument )
 	int processus;								// récupère le PID du processus une fois le fork() exécuté
 	int execlExit;              				// récupère la valeur de sortie d'execl
 	
-	fprintf( stderr, "Execution de la commande '%s' avec l'argument '%s'.\n", commande, argument );
+	// fprintf( stderr, "Execution de la commande '%s' avec l'argument '%s'.\n", commande, argument );
 	
 	// On se divise !!
 	processus = fork();
