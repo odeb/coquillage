@@ -479,27 +479,29 @@ int main( int argc, char** argv )
 									 * et que le contenu du pipe précédent sera donc ignoré pour la commande courante. */
 									fprintf( stderr, "Warning: Attention le pipe ne devrait pas prendre le dessus sur '<'.\n");
 									
-									// A VERIFIER ABSOLUMENT
-									/* On commence par appeler la fonction qui récupère le pipe existant et change l'entrée standard,
-									 * tout en testant la valeur de retour. */
+									/* Le côté lecture du pipe de gauche doit être ignoré, au profit de la redirection de l'entrée.
+									 * C'est pourquoi il faut tout d'abord fermer le côté lecture du pipe de gauche.
+									 * Pour ce faire, on commence par le "récupérer", ce qui a pour effet de rediriger temporairement l'entrée standard vers ce pipe pré-existant. */
 									if( recuperationPipe( fp, &copieLecture, &copieLecturePipe ) )
 									{
 										fprintf( stderr, "Erreur de récupération du pipe.\n" );
 										exit( 1 );
 									}
-									/* On ferme le côté lecture du pipe précédent la commande,
-									 * car il est vidé, on n'a plus besoin de ce côté.
-									 * Au passage, l'entrée standard écran est rétablie pour la prochaine commande.
-									 * Comme toujours, la sortie d'erreur est testée en même temps que la fonction est appelée. */
+									
+									/* Ensuite, on ferme ce côté lecture du pipe précédent la commande,
+									 * car il n'est pas utilisé, à cause de la redirection de l'entrée.
+									 * Cette fonction permet de supprimer le descripteur de fichier correspondant au pipe,
+									 * et donc de libérer l'espace mémoire associé. 
+									 * Cette fonction rétablit l'entrée standard présente avant l'appel de recuperationPipe,
+									 * qui dans ce cas contenait le fichier d'entrée voulu ;
+									 * ainsi, au final, l'entrée est bel et bien le fichier demandé. */
 									if( fermerPipe( &copieLecture, &copieLecturePipe ) )
 									{
 										fprintf( stderr, "Erreur de fermeture du pipe.\n" );
 										exit( 1 );
 									}
 									
-									
-									/* On appelle immédiatement la fonction qui créer un nouveau pipe et redirige la sortie. 
-									 * Il n'est pas nécessaire de récupérer le pipe précédent car il est ignoré. */
+									/* On appelle à présent la fonction qui créer un nouveau pipe et redirige la sortie. */
 									if( creationPipe( fp, &copieEcriture, &copieEcriturePipe ) )
 									{
 										fprintf( stderr, "Erreur de création du pipe.\n" );
@@ -514,7 +516,7 @@ int main( int argc, char** argv )
 										exit( 1 );
 									}
 									
-// STOP										
+								
 									//~ if ( restaurerSortie == 1 )
 									//~ {
 										//~ restore_stdout( sortie_std );
@@ -522,179 +524,272 @@ int main( int argc, char** argv )
 									//~ }
 									//~ if ( restaurerEntree == 1 )
 									//~ {
+									
+									/* A cause de la redirection de l'entrée vers un fichier, il faut à présent rétablir l'entrée standard clavier */
 										restore_stdin( entree_std );
 										restaurerEntree = 0;
 									//~ }
 									
+									/* On ferme le côté écriture du pipe car il est rempli, on n'a plus besoin de ce côté.
+									 * Au passage, la sortie standard écran est rétablie pour la prochaine commande.
+									 * Comme toujours, la sortie d'erreur est testée en même temps que la fonction est appelée. */
 									if( fermerPipe( &copieEcriture, &copieEcriturePipe ) )
 									{
 										fprintf( stderr, "Erreur de fermeture du pipe.\n" );
 										exit( 1 );
 									}
-								}
-								// s'il y a une redirection de sortie et une redirection d'entrée
+								}/* fin du traitement d'une commande en sandwich entre deux "|", avec redirection d'entrée (<) mais sans redirection de sortie (>) */
+									
+								/* Cas dégradé 3 : redirection d'entrée (<) et redirection de sortie (>) concurrentes aux "|" */
 								else if(attention_redirection_sortie == 1 && attention_redirection_entree == 1)
 								{
+									/* On avertit l'utilisateur que l'entrée  et la sortie de la commande seront des fichiers,
+									 * que le contenu du pipe précédent sera ignoré pour la commande courante,
+									 * et que le pipe suivant sera vide. */
 									fprintf( stderr, "Warning: Attention le pipe ne devrait prendre le dessus ni sur '>' ni sur '<'.\n" );
 									
-									// fork() puis execution de la commande avec son argument
+									/* Le côté lecture du pipe de gauche doit être ignoré, au profit de la redirection de l'entrée.
+									 * C'est pourquoi il faut tout d'abord fermer le côté lecture du pipe de gauche.
+									 * Pour ce faire, on commence par le "récupérer", ce qui a pour effet de rediriger temporairement l'entrée standard vers ce pipe pré-existant. */
+									if( recuperationPipe( fp, &copieLecture, &copieLecturePipe ) )
+									{
+										fprintf( stderr, "Erreur de récupération du pipe.\n" );
+										exit( 1 );
+									}
+									
+									/* Ensuite, on ferme ce côté lecture du pipe précédent la commande,
+									 * car il n'est pas utilisé, à cause de la redirection de l'entrée.
+									 * Cette fonction permet de supprimer le descripteur de fichier correspondant au pipe,
+									 * et donc de libérer l'espace mémoire associé. 
+									 * Cette fonction rétablit l'entrée standard présente avant l'appel de recuperationPipe,
+									 * qui dans ce cas contenait le fichier d'entrée voulu ;
+									 * ainsi, au final, l'entrée est bel et bien le fichier demandé. */
+									if( fermerPipe( &copieLecture, &copieLecturePipe ) )
+									{
+										fprintf( stderr, "Erreur de fermeture du pipe.\n" );
+										exit( 1 );
+									}
+									
+									/* fork() puis execution de la commande courante avec son argument.
+									 * On appelle la fonction tout en testant son retour */	
 									if( forkNexec( commande, argument ) )
 									{
 										fprintf( stderr, "Erreur de fork et exécution.\n" );
 										exit( 1 );
 									}
-																			
-									if ( restaurerSortie == 1 )
-									{
+																					
+									//~ if ( restaurerSortie == 1 )
+									//~ {
+									/* A cause de la redirection de la sortie vers un fichier, il faut (provisoirement) rétablir la sortie standard écran */
 										restore_stdout( sortie_std );
 										restaurerSortie = 0;
-									}
-									if ( restaurerEntree == 1 )
-									{
+									//~ }
+									//~ if ( restaurerEntree == 1 )
+									//~ {
+									/* A cause de la redirection de l'entrée vers un fichier, il faut à présent rétablir l'entrée standard clavier */
 										restore_stdin( entree_std );
 										restaurerEntree = 0;
-									}
+									//~ }
 									
-									// même si '>' prend le dessus sur "|" il ne faut pas oublié de créer quand même le pipe !
+									/* Le pipe n'avait pas lieu d'être pour cette commande, car la sortie devait être le fichier.
+									 * Cependant, l'entrée de la commande suivante doit quand même être un pipe, même vide !
+									 * Ainsi, on crée un pipe après l'exécution, qui sera vide, destiné à l'entrée de la commande suivante. */
 									if( creationPipe( fp, &copieEcriture, &copieEcriturePipe ) )
 									{
 										fprintf( stderr, "Erreur de création du pipe.\n" );
 										exit( 1 );
 									}
+								
+									/* Et on referme immédiatement le côté écriture du pipe, qui ne sert à rien dans ce cas. */
 									if( fermerPipe( &copieEcriture, &copieEcriturePipe ) )
 									{
 										fprintf( stderr, "Erreur de fermeture du pipe.\n" );
 										exit( 1 );
 									}
-								}
-							}
+								} /* fin du traitement d'une commande en sandwich entre deux "|", avec redirection d'entrée (<) et redirection de sortie (>) */
+							} /* fin du traitement d'une commande en sandwich entre deux "|" */
+						
+							/* Cette partie est réalisée après chaque execution de commande */
+							/* On réinitialise la variable contenant l'argument,
+							 * pour éviter un éventuel transfert d'argument à la prochaine commande */
 							if( strcpy( argument, "" ) == NULL )
 							{
 								fprintf( stderr, "Erreur de ré-initialisation d'argument à une chaîne vide.\n" );
 								exit( 1 );
 							}
+							
+							/* On récupère le dernier mot lu, qui correspond à la commande suivante.
+							 * Toute commande qui suit un "|" est enregistrée dans "commande" ici. */
 							if( strcpy( commande, mot ) == NULL )
 							{
 								fprintf( stderr, "Erreur de copie du mot dans argument.\n" );
 								exit( 1 );
 							}
+									
+							/* On réinitialise les avertisseurs pour l'analyse de la prochaine commande. */
 							faire_la_redirection = 1;
 							attention_redirection_sortie = 0;
 							attention_redirection_entree = 0;
-						}
+						} /* fin du traitement des commandes appelées après un "|" */
+						
+						/* Si le mot lu n'est pas un symbole, et n'est précédé d'aucun symbole, c'est donc la toute première commande. */
 						else
 						{
+							/* On enregistre cette commande dans la bonne variable. */
 							if( strcpy( commande, mot ) == NULL )
 							{
 								fprintf( stderr, "Erreur de copie du mot dans argument.\n" );
 								exit( 1 );
 							}
-						}
+						} /* fin de l'enregistrement de la toute première commande. */
+						
+						/* On vient d'enregistrer le nom de l'exécutable à lancer (commande), donc le mot suivant est un argument ou un symbole. */
 						argumentEnCours = 1;
-					}					
-				}
+						
+					} /* fin du traitement des mots qui ne sont pas des symboles, et des exécutions associées. */		
+				} /* fin du traitement des mots lus au fur et à mesure */
+				
+
+				/* S'il n'y a plus de mot à lire, cela signifie qu'il ne reste plus qu'à exécuter la dernière commande avec les options associées */
 				else
 				{
+					/* Cet avertisseur permettra de sortir du while qui traite cette entrée utilisateur ;
+					* ainsi, on sortira de ce while pour rendre le prompt. */
 					analyseEnCours = 1;
-					// on ne passe par ici que dans le cas où la l'entrée utilisateur ne contenait qu'une commande avec ou sans argument avec ou sans redirection de sortie et/ou entrée
+					
+					/* Nous sommes dans le cas où l'entrée utilisateur ne contient qu'une seule commande, sans aucun "|" */
 					if( faire_la_redirection == 0 )
 					{
-						// fork() puis execution de la commande avec son argument
+						/* fork() puis execution de la commande courante avec son argument.
+						 * On appelle la fonction tout en testant son retour */
 						if( forkNexec( commande, argument ) )
 						{
 							fprintf( stderr, "Erreur de fork et exécution.\n" );
 							exit( 1 );
 						}
-									
+						
+						/* Si la sortie de la commande courante a été redirigée (">"), 
+						 * il faut restaurer l'entrée standard après exécution de la commande. */			
 						if ( restaurerSortie == 1 )
 						{
 							restore_stdout( sortie_std );
 							restaurerSortie = 0;
 						}
+						
+						/* Si l'entrée de la commande courante a été redirigée ("<"), 
+						 * il faut restaurer l'entrée standard après exécution de la commande. */
 						if ( restaurerEntree == 1 )
 						{
 							restore_stdin( entree_std );
 							restaurerEntree = 0;
 						}
-					}
-					// sinon on passe par là, car il y a eu un pipe avant la commande finale de l'entrée utilisateur.
+					} /* fin du traitement d'une commande sans pipe */
+					
+					/* Nous sommes dans le cas du traitement de la toute dernière commande, appelée après le dernier "|" */
 					else
 					{
+						/* Cas nominal : pas de redirection de l'entrée (<) concurrente au pipe */
 						if ( attention_redirection_entree == 0 )
 						{
-							if( recuperationPipe( fp, &copieLecture, &copieLecturePipe ) )
-							{
-								fprintf( stderr, "Erreur de récupération du pipe.\n" );
-								exit( 1 );
-							}
-
-							// fork() puis execution de la commande avec son argument
-							if( forkNexec( commande, argument ) )
-							{
-								fprintf( stderr, "Erreur de fork et exécution.\n" );
-								exit( 1 );
-							}
-																						
-							if ( restaurerSortie == 1 )
-							{
-								restore_stdout( sortie_std );
-								restaurerSortie = 0;
-							}
-							if ( restaurerEntree == 1 )
-							{
-								restore_stdin( entree_std );
-								restaurerEntree = 0;
-							}
-
-							if( fermerPipe( &copieLecture, &copieLecturePipe ) )
-							{
-								fprintf( stderr, "Erreur de fermeture du pipe.\n" );
-								exit( 1 );
-							}
-						}
-						else
-						{
-							
-							// A VERIFIER ABSOLUMENT
 							/* On commence par appeler la fonction qui récupère le pipe existant et change l'entrée standard,
 							 * tout en testant la valeur de retour. */
 							if( recuperationPipe( fp, &copieLecture, &copieLecturePipe ) )
 							{
 								fprintf( stderr, "Erreur de récupération du pipe.\n" );
 								exit( 1 );
-							}							
+							}
+							
+							/* fork() puis execution de la commande courante avec son argument.
+							* On appelle la fonction tout en testant son retour */
+							if( forkNexec( commande, argument ) )
+							{
+								fprintf( stderr, "Erreur de fork et exécution.\n" );
+								exit( 1 );
+							}
+
+							/* Si la sortie de la commande courante a été redirigée (">"), 
+							* il faut restaurer l'entrée standard après exécution de la commande. */															
+							if ( restaurerSortie == 1 )
+							{
+								restore_stdout( sortie_std );
+								restaurerSortie = 0;
+							}
+							//~ if ( restaurerEntree == 1 )
+							//~ {
+								//~ restore_stdin( entree_std );
+								//~ restaurerEntree = 0;
+							//~ }
+				
 							/* On ferme le côté lecture du pipe précédent la commande,
 							 * car il est vidé, on n'a plus besoin de ce côté.
-							 * Au passage, l'entrée standard écran est rétablie pour la prochaine commande.
-							 * Comme toujours, la sortie d'erreur est testée en même temps que la fonction est appelée. */
+							 * Au passage, l'entrée standard écran est rétablie pour rendre le prompt proprement. */
+							if( fermerPipe( &copieLecture, &copieLecturePipe ) )
+							{
+								fprintf( stderr, "Erreur de fermeture du pipe.\n" );
+								exit( 1 );
+							}
+						} /* fin du traitement de la dernière commande sans redirection de l'entrée (<) concurrente au pipe */
+						
+						/* Cas dégradé : redirection de l'entrée (<) concurrente au pipe */
+						else
+						{
+							
+							/* On avertit l'utilisateur que l'entrée de la commande sera le fichier,
+							* et que le contenu du pipe précédent sera donc ignoré pour la commande courante. */
+							fprintf( stderr, "Warning: Attention le pipe ne devrait pas prendre le dessus sur '<'.\n");
+							
+							/* Le côté lecture du pipe de gauche doit être ignoré, au profit de la redirection de l'entrée.
+							 * C'est pourquoi il faut tout d'abord fermer le côté lecture du pipe de gauche.
+							 * Pour ce faire, on commence par le "récupérer", ce qui a pour effet de rediriger temporairement l'entrée standard vers ce pipe pré-existant. */
+							if( recuperationPipe( fp, &copieLecture, &copieLecturePipe ) )
+							{
+								fprintf( stderr, "Erreur de récupération du pipe.\n" );
+								exit( 1 );
+							}	
+
+							/* Ensuite, on ferme ce côté lecture du pipe précédent la commande,
+							 * car il n'est pas utilisé, à cause de la redirection de l'entrée.
+							 * Cette fonction permet de supprimer le descripteur de fichier correspondant au pipe,
+							 * et donc de libérer l'espace mémoire associé. 
+							 * Cette fonction rétablit l'entrée standard présente avant l'appel de recuperationPipe,
+							 * qui dans ce cas contenait le fichier d'entrée voulu ;
+							 * ainsi, au final, l'entrée est bel et bien le fichier demandé. */
 							if( fermerPipe( &copieLecture, &copieLecturePipe ) )
 							{
 								fprintf( stderr, "Erreur de fermeture du pipe.\n" );
 								exit( 1 );
 							}
 							
-							// fork() puis execution de la commande avec son argument
+							/* fork() puis execution de la commande courante avec son argument.
+							 * On appelle la fonction tout en testant son retour */	
 							if( forkNexec( commande, argument ) )
 							{
 								fprintf( stderr, "Erreur de fork et exécution.\n" );
 								exit( 1 );
 							}
 							
+							/* Si la sortie de la commande courante a été redirigée (">"), 
+							* il faut restaurer l'entrée standard après exécution de la commande. */
 							if ( restaurerSortie == 1 )
 							{
 								restore_stdout( sortie_std );
 								restaurerSortie = 0;
 							}
-							if ( restaurerEntree == 1 )
-							{
+							
+							/* A cause de la redirection de l'entrée vers un fichier, il faut à présent rétablir l'entrée standard clavier */
+							//~ if ( restaurerEntree == 1 )
+							//~ {
 								restore_stdin( entree_std );
 								restaurerEntree = 0;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+							//~ }
+
+						} /* fin du traitement de la dernière commande après pipe, avec redirection de l'entrée (<) concurrente */
+					} /* fin du traitement de la toute dernière commande, appelée après le dernier "|" */
+				} /* fin du traitement de la dernière commande, détectée par la lecture de la fin de la chaine de caractères entrée par l'utilisateur */
+			} /* fin de l'analyse et du traitement de l'entrée utilisateur : fin de l'exécution de toutes les commandes*/ 
+		} /* fin de l'entrée utilisateur courante : on rend le prompt */
+	} /* fin de la boucle d'attente des entrées utilisateur */
+	
 	return 0;
-}
+	
+} /* fin du programme */
