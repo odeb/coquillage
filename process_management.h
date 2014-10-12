@@ -1,5 +1,5 @@
 /*
- * coquillage.c
+ * process_management.h
  * 
  * Copyright 2014 Porté Marie-Luc and Debenath-Redondo Olmo
  * 

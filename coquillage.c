@@ -267,13 +267,6 @@ int main( int argc, char** argv )
 										exit( 1 );
 									}
 									
-									//~
-									//~ if ( restaurerSortie == 1 )
-									//~ {
-											//~ restore_stdout( sortie_std );
-											//~ restaurerSortie = 0;
-									//~ }
-									
 									/* Si l'entrée de la commande courante a été redirigée ("<" avant le "|"), 
 									 * il faut restaurer l'entrée standard après exécution de la commande. */
 									if ( restaurerEntree == 1 )
@@ -311,11 +304,8 @@ int main( int argc, char** argv )
 								
 									/* Une fois la commande exécutée, la sortie standard écran doit être restaurée.
 									 * On rappelle que cette sortie était le fichier spécifié derrière le ">" */
-									//~ if ( restaurerSortie == 1 )
-									//~ {
-										restore_stdout( sortie_std );
-										restaurerSortie = 0;
-									//~ }
+									restore_stdout( sortie_std );
+									restaurerSortie = 0;
 									
 									/* Si l'entrée de la commande courante a été redirigée ("<" avant le "|"), 
 									 * il faut restaurer l'entrée standard après exécution de la commande. */
@@ -376,17 +366,6 @@ int main( int argc, char** argv )
 										fprintf( stderr, "Erreur de fork et exécution.\n" );
 										exit( 1 );
 									}
-																										
-									//~ if ( restaurerSortie == 1 )
-									//~ {
-										//~ restore_stdout( sortie_std );
-										//~ restaurerSortie = 0;
-									//~ }
-									//~ if ( restaurerEntree == 1 )
-									//~ {
-										//~ restore_stdin( entree_std );
-										//~ restaurerEntree = 0;
-									//~ }
 									
 									/* On ferme le côté lecture du pipe précédent la commande,
 									 * car il est vidé, on n'a plus besoin de ce côté.
@@ -433,16 +412,8 @@ int main( int argc, char** argv )
 									}
 	
 									/* A cause de la redirection de la sortie vers un fichier, il faut (provisoirement) rétablir la sortie standard écran */									
-									//~ if ( restaurerSortie == 1 )
-									//~ {
-										restore_stdout( sortie_std );
-										restaurerSortie = 0;
-									//~ }
-									//~ if ( restaurerEntree == 1 )
-									//~ {
-										//~ restore_stdin( entree_std );
-										//~ restaurerEntree = 0;
-									//~ }
+									restore_stdout( sortie_std );
+									restaurerSortie = 0;
 								
 									/* On ferme le côté lecture du pipe précédent la commande,
 									 * car il est vidé, on n'a plus besoin de ce côté.
@@ -516,19 +487,9 @@ int main( int argc, char** argv )
 										exit( 1 );
 									}
 									
-								
-									//~ if ( restaurerSortie == 1 )
-									//~ {
-										//~ restore_stdout( sortie_std );
-										//~ restaurerSortie = 0;
-									//~ }
-									//~ if ( restaurerEntree == 1 )
-									//~ {
-									
 									/* A cause de la redirection de l'entrée vers un fichier, il faut à présent rétablir l'entrée standard clavier */
-										restore_stdin( entree_std );
-										restaurerEntree = 0;
-									//~ }
+									restore_stdin( entree_std );
+									restaurerEntree = 0;
 									
 									/* On ferme le côté écriture du pipe car il est rempli, on n'a plus besoin de ce côté.
 									 * Au passage, la sortie standard écran est rétablie pour la prochaine commande.
@@ -578,18 +539,13 @@ int main( int argc, char** argv )
 										exit( 1 );
 									}
 																					
-									//~ if ( restaurerSortie == 1 )
-									//~ {
 									/* A cause de la redirection de la sortie vers un fichier, il faut (provisoirement) rétablir la sortie standard écran */
 										restore_stdout( sortie_std );
 										restaurerSortie = 0;
-									//~ }
-									//~ if ( restaurerEntree == 1 )
-									//~ {
+
 									/* A cause de la redirection de l'entrée vers un fichier, il faut à présent rétablir l'entrée standard clavier */
 										restore_stdin( entree_std );
 										restaurerEntree = 0;
-									//~ }
 									
 									/* Le pipe n'avait pas lieu d'être pour cette commande, car la sortie devait être le fichier.
 									 * Cependant, l'entrée de la commande suivante doit quand même être un pipe, même vide !
@@ -714,11 +670,6 @@ int main( int argc, char** argv )
 								restore_stdout( sortie_std );
 								restaurerSortie = 0;
 							}
-							//~ if ( restaurerEntree == 1 )
-							//~ {
-								//~ restore_stdin( entree_std );
-								//~ restaurerEntree = 0;
-							//~ }
 				
 							/* On ferme le côté lecture du pipe précédent la commande,
 							 * car il est vidé, on n'a plus besoin de ce côté.
@@ -777,11 +728,8 @@ int main( int argc, char** argv )
 							}
 							
 							/* A cause de la redirection de l'entrée vers un fichier, il faut à présent rétablir l'entrée standard clavier */
-							//~ if ( restaurerEntree == 1 )
-							//~ {
-								restore_stdin( entree_std );
-								restaurerEntree = 0;
-							//~ }
+							restore_stdin( entree_std );
+							restaurerEntree = 0;
 
 						} /* fin du traitement de la dernière commande après pipe, avec redirection de l'entrée (<) concurrente */
 					} /* fin du traitement de la toute dernière commande, appelée après le dernier "|" */
